@@ -1,0 +1,27 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+numpy = "*"
+pandas = "*"
+matplotlib = "*"
+seaborn = "*"
+scipy = "*"
+jupyter = "*"
+tqdm = "*"
+torch = "*"
+torchvision = "*"
+kaggle = "*"
+pillow = "*"
+jupyterlab = "*"
+openslide = "*"
+opencv-python = "*"
+openslide-python = "*"
+setuptools = "==45.2.0"
+
+[requires]
+python_version = "3.7"
