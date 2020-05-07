@@ -98,6 +98,14 @@ class PANDAImagePreprocessing:
         return mask_data
 
     def transform(self):
+        """
+        前処理を実行
+        画像とマスクデータを読み込む
+        img_size×img_sizeのグリッドに合うようにpaddingを行い、
+        グリッドごとのマスクデータからそのグリッドにおけるgleason_scoreを集計する
+        グリッドごとの画像をjpg形式で保存（背景の割合がbackground_rate以上のものは無視する）
+        :return: dataframe グリッドごとのgleason_scoreの集計結果
+        """
         print('Start Preprocessing')
         print('Target Image ID: ', self.id)
         res = pd.DataFrame()

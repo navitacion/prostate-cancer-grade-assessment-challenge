@@ -37,7 +37,11 @@ gc.collect()
 print('PANDA Challenge - Image Preprocessing')
 print('Target Data Num: ', ids.shape[0])
 
-all_res = pd.DataFrame()
+img_id_list = []
+score_0 = []
+score_3 = []
+score_4 = []
+score_5 = []
 
 with redirect_stdout(open(os.devnull, 'w')):
     for id in tqdm(ids):
@@ -47,6 +51,19 @@ with redirect_stdout(open(os.devnull, 'w')):
                                        save_dir=save_dir)
 
         res = prep.transform()
-        all_res = pd.concat([all_res, res], axis=0, ignore_index=True)
-        all_res.to_csv(os.path.join(save_dir, 'res.csv'), index=False)
 
+        img_id_list.extend(res['image_id'].values.tolist())
+        score_0.extend(res['score_0'].values.tolist())
+        score_3.extend(res['score_3'].values.tolist())
+        score_4.extend(res['score_4'].values.tolist())
+        score_5.extend(res['score_5'].values.tolist())
+
+all_res = pd.DataFrame({
+    'image_id': img_id_list,
+    'score_0': score_0,
+    'score_3': score_3,
+    'score_4': score_4,
+    'score_5': score_5
+})
+
+all_res.to_csv(os.path.join(save_dir, 'res.csv'), index=False)
