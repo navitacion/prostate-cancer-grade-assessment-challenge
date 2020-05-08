@@ -1,6 +1,7 @@
 import os
 import gc
 import glob
+import argparse
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
@@ -12,10 +13,14 @@ if os.name == 'nt':
 else:
     sep = '/'
 
+parser = argparse.ArgumentParser()
+parser.add_argument('-size', '--img_size', type=int, default=224)
+args = parser.parse_args()
+
 # Config
+SIZE = args.img_size
 data_dir = '../data/input'
-save_dir = '../data/grid_224'
-SIZE = 224
+save_dir = f'../data/grid_{SIZE}'
 BACKGROUND = 0.7
 
 # データ読み込み
@@ -31,7 +36,6 @@ train = train[train['data_provider'] == 'radboud'].reset_index(drop=True)
 ids = train['image_id'].values
 del train, masks
 gc.collect()
-
 
 # 前処理の実行
 print('PANDA Challenge - Image Preprocessing')
@@ -51,6 +55,8 @@ with redirect_stdout(open(os.devnull, 'w')):
                                        save_dir=save_dir)
 
         res = prep.transform()
+        if res is None:
+            continue
 
         img_id_list.extend(res['image_id'].values.tolist())
         score_0.extend(res['score_0'].values.tolist())

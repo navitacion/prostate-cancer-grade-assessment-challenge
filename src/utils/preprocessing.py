@@ -34,7 +34,10 @@ class PANDAImagePreprocessing:
         # Set Properties  1: Point   2: Tiff Level   3: Viewing Dimension
         # .level_count -> Get Tiff Level Count
         # .level_dimensions -> Get Tiff Width, Height per Level
-        patch = slide.read_region((0, 0), 0, slide.level_dimensions[0])
+        try:
+            patch = slide.read_region((0, 0), 0, slide.level_dimensions[0])
+        except:
+            return None
 
         # PIL -> ndarray
         patch = np.asarray(patch)
@@ -60,7 +63,11 @@ class PANDAImagePreprocessing:
         # Set Properties  1: Point   2: Tiff Level   3: Viewing Dimension
         # .level_count -> Get Tiff Level Count
         # .level_dimensions -> Get Tiff Width, Height per Level
-        mask_data = slide.read_region((0, 0), 0, slide.level_dimensions[0])
+        # なぜか読み込めないものもある　一旦例外処理する
+        try:
+            mask_data = slide.read_region((0, 0), 0, slide.level_dimensions[0])
+        except:
+            return None
 
         mask_data = mask_data.split()[0]
         # To show the masks we map the raw label values to RGB values
@@ -113,6 +120,8 @@ class PANDAImagePreprocessing:
         print('Image Loading...')
         img = self._display_img()
         mask = self._display_mask()
+        if img is None or mask is None:
+            return None
 
         # Padding
         H, W = img.shape[:2]
