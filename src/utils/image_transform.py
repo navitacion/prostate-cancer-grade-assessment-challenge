@@ -17,7 +17,7 @@ class ImageTransform:
             ])}
 
     def __call__(self, img, phase='train'):
-         augmented = self.transform[phase](image=img)
-         _img = augmented['image']
+        augmented = self.transform[phase](image=img)
+        _img = augmented['image']
 
-         return _img
+        return _img
