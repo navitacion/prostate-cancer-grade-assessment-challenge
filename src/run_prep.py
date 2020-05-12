@@ -14,7 +14,7 @@ else:
     sep = '/'
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-size', '--img_size', type=int, default=224)
+parser.add_argument('-s', '--img_size', type=int, default=224)
 args = parser.parse_args()
 
 # Config

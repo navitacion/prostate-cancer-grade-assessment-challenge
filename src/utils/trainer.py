@@ -67,5 +67,10 @@ class Trainer:
                 best_loss = epoch_loss
                 filename = f'{self.exp}_epoch_{epoch+1}_loss_{best_loss:.3f}.pth'
                 torch.save(self.net.state_dict(), os.path.join(self.save_weight_path, filename))
+                best_weights = self.net.state_dict()
 
         self.writer.close()
+
+        self.net.load_state_dict(best_weights)
+
+        return self.net

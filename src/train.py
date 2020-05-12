@@ -7,14 +7,12 @@ import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader
 
-from utils.utils import seed_everything
-from utils.image_transform import ImageTransform
-from utils.dataset import PANDADataset
-from .utils.trainer import Trainer
+from .utils import seed_everything, ImageTransform, PANDADataset, Trainer
+from .model import ModelEFN
 
 # Config
 train_size = 0.8
-batch_size = 128
+batch_size = 32
 lr = 1e-3
 num_epochs = 100
 data_dir = '../data/grid_224'
@@ -40,7 +38,8 @@ dataloaders = {
     'val': DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 }
 
-net = None
+
+net = ModelEFN(output_size=3)
 optimizer = optim.Adam(net.parameters(), lr=lr)
 criterion = nn.CrossEntropyLoss()
 
