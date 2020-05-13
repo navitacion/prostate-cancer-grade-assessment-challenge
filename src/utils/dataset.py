@@ -45,8 +45,14 @@ class PANDADataset(Dataset):
         if self.transform is not None:
             img = self.transform(img, phase=self.phase)
 
-        label = (target_row['score_3'].values, target_row['score_4'].values, target_row['score_5'].values)
-        label = torch.tensor(label)
+        # img = img.to(torch.int32)
+
+        label = (target_row['score_0'].values,
+                 target_row['score_3'].values,
+                 target_row['score_4'].values,
+                 target_row['score_5'].values)
+
+        label = torch.tensor(label, dtype=torch.float32)
         label = label.reshape((-1))
 
         return img, label

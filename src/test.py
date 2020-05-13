@@ -13,14 +13,16 @@ score_df = pd.read_csv(os.path.join(data_dir, 'res.csv'))
 
 print(type(img_path))
 
-# transform = ImageTransform()
-# dataset = PANDADataset(img_path, score_df, transform, phase='train')
-#
-# img, label = dataset.__getitem__(5)
-#
-# print(img.size())
-# print(img)
-# print(label.size())
-# print(label)
+transform = ImageTransform()
+dataset = PANDADataset(img_path, score_df, transform, phase='train')
+
+img, label = dataset.__getitem__(5)
+
+print(img.size())
+print(img.dtype)
+print(img)
+print(label.size())
+print(label.dtype)
+print(label)
 
 

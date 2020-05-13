@@ -23,6 +23,7 @@ opencv-python = "*"
 openslide-python = "*"
 setuptools = "==45.2.0"
 efficientnet-pytorch = "*"
+tensorboard = "*"
 
 [requires]
 python_version = "3.7"

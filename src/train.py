@@ -6,15 +6,17 @@ import pandas as pd
 import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader
+from torch.optim.lr_scheduler import StepLR
 
-from .utils import seed_everything, ImageTransform, PANDADataset, Trainer
-from .model import ModelEFN
+from utils import seed_everything, ImageTransform, PANDADataset, Trainer
+from model import ModelEFN
 
 # Config
-train_size = 0.8
-batch_size = 32
-lr = 1e-3
+train_size = 0.95
+batch_size = 128
+lr = 5e-4
 num_epochs = 100
+limit_per_epoch = 50
 data_dir = '../data/grid_224'
 seed = 42
 exp_name = 'test_01'
@@ -38,14 +40,18 @@ dataloaders = {
     'val': DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 }
 
+print('Data Num')
+print('Train: ', len(dataloaders['train']))
+print('Val: ', len(dataloaders['val']))
 
-net = ModelEFN(output_size=3)
+net = ModelEFN(output_size=4)
 optimizer = optim.Adam(net.parameters(), lr=lr)
-criterion = nn.CrossEntropyLoss()
+criterion = nn.MSELoss()
+scheduler = StepLR(optimizer, step_size=3, gamma=0.5)
 
 
 trainer = Trainer(dataloaders, net, device, num_epochs, criterion,
-                  optimizer, exp=exp_name)
+                  optimizer, scheduler, exp=exp_name, limit_per_epoch=limit_per_epoch)
 
 trainer.train()
 
