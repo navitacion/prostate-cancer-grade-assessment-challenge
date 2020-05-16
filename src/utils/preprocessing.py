@@ -16,12 +16,13 @@ class PANDAImagePreprocessing:
 
     """
     
-    def __init__(self, target_id, img_size=128, background_rate=0.5, data_dir='../data/input', save_dir='.'):
+    def __init__(self, target_id, img_size=128, background_rate=0.5, data_dir='../data/input', save_dir='.', tiff_level=0):
         self.id = target_id
         self.img_size = img_size
         self.background_rate = background_rate
         self.data_dir = data_dir
         self.save_dir = save_dir
+        self.tiff_level = tiff_level
 
     def _display_img(self):
         """
@@ -35,7 +36,7 @@ class PANDAImagePreprocessing:
         # .level_count -> Get Tiff Level Count
         # .level_dimensions -> Get Tiff Width, Height per Level
         try:
-            patch = slide.read_region((0, 0), 0, slide.level_dimensions[0])
+            patch = slide.read_region((0, 0), self.tiff_level, slide.level_dimensions[self.tiff_level])
         except:
             return None
 
@@ -65,7 +66,7 @@ class PANDAImagePreprocessing:
         # .level_dimensions -> Get Tiff Width, Height per Level
         # なぜか読み込めないものもある　一旦例外処理する
         try:
-            mask_data = slide.read_region((0, 0), 0, slide.level_dimensions[0])
+            mask_data = slide.read_region((0, 0), self.tiff_level, slide.level_dimensions[self.tiff_level])
         except:
             return None
 

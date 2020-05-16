@@ -1,5 +1,8 @@
 import os
+import gc
 import glob
+import random
+import openslide
 import numpy as np
 import pandas as pd
 from PIL import Image
@@ -16,43 +19,153 @@ else:
     sep = '/'
 
 
+def pad_and_tile(img, img_size):
+    # Padding
+    H, W = img.shape[:2]
+    pad_h = (img_size - H % img_size) % img_size
+    pad_w = (img_size - W % img_size) % img_size
+
+    padded_img = np.pad(
+        img,
+        pad_width=[[pad_h // 2, pad_h - pad_h // 2], [pad_w // 2, pad_w - pad_w // 2], [0, 0]],
+        constant_values=255
+    )
+
+    new_H, new_W = padded_img.shape[:2]
+
+    del img
+    gc.collect()
+    img_list = []
+
+    for h in range(int(new_H / img_size)):
+        for w in range(int(new_W / img_size)):
+            # Trim
+            _img = padded_img[h * img_size:(h + 1) * img_size,
+                   w * img_size:(w + 1) * img_size, :]
+
+            # 何も写ってない場合は除外
+            flag = 255 - _img
+            flag = np.sum(flag)
+
+            if flag != 0:
+                img_list.append(_img)
+            else:
+                pass
+
+    return img_list
+
+
 class PANDADataset(Dataset):
 
-    def __init__(self, img_path, score_df, transform=None, phase='train'):
-        self.img_path = img_path
-        # id部分だけを抽出
-        img_ids = [path.split(sep)[-1].split('.')[0] for path in img_path]
-        # 画像が存在する行だけ抽出
-        self.score_df = score_df[score_df['image_id'].isin(img_ids)].reset_index(drop=True)
+    def __init__(self, meta, data_dir, phase='train', transform=None, tiff_level=-1, use_tile=False, img_size=224):
+        self.meta = meta
+        self.data_dir = data_dir
+        self.phase = phase
+        self.transform = transform
+        self.tiff_level = tiff_level
+        self.use_tile = use_tile
+        self.img_size = img_size
+
+    def __len__(self):
+        return len(self.meta)
+
+    def __getitem__(self, idx):
+
+        target_row = self.meta.iloc[idx]
+        target_id = target_row['image_id']
+        label = target_row['isup_grade']
+
+        img_path = os.path.join(self.data_dir, f'{target_id}.tiff')
+        slide = openslide.OpenSlide(img_path)
+        if self.tiff_level == -1:
+            img = slide.read_region((0, 0), slide.level_count - 1, slide.level_dimensions[-1])
+        else:
+            img = slide.read_region((0, 0), self.tiff_level, slide.level_dimensions[self.tiff_level])
+
+        # PIL -> ndarray
+        img = np.asarray(img)
+        # RGBA -> RGB
+        if img.shape[-1] == 4:
+            img = img[:, :, :3]
+
+        slide.close()
+        # タイル状にして複数の画像にする
+        if self.use_tile:
+            img_list = pad_and_tile(img, self.img_size)
+
+            if self.transform is not None:
+                img_list = [self.transform(img) for img in img_list]
+            else:
+                img_list = [torch.tensor(img).permute(2, 0, 1) for img in img_list]
+
+            if len(img_list) != 0:
+                return torch.stack(img_list), target_id
+            else:
+                return None, label
+
+        else:
+            if self.transform is not None:
+                img = self.transform(img)
+            else:
+                img = torch.tensor(img).permute(2, 0, 1)
+            return img, label
+
+
+class PANDADataset_2(Dataset):
+    """
+    ある特定の画像IDにおける
+    ・
+    画像（batch, num, channel, width, height）
+    マスクスコア
+    isup_grade
+    id
+    を出力
+    """
+
+    def __init__(self, score_df, train, img_num_per_id=50, data_dir=None, transform=None, phase='train'):
+        self.score_df = score_df
+        self.train = train
+        self.img_num_per_id = img_num_per_id
+        self.data_dir = data_dir
+        self.target_ids = [t.split('_')[0] for t in np.unique(self.score_df['image_id'].values)]
         self.transform = transform
         self.phase = phase
 
     def __len__(self):
-        return len(self.score_df)
+        return len(self.target_ids)
 
     def __getitem__(self, idx):
-        target_img_path = self.img_path[idx]
-        target_id = target_img_path.split(sep)[-1].split('.')[0]
-        target_row = self.score_df[self.score_df['image_id'] == target_id]
+        # 対象のimage_id
+        target_id = self.target_ids[idx]
+        # target_idに該当する画像を抽出
+        temp = self.score_df[self.score_df['image_id'].str.contains(target_id)]
+        temp = temp.sample(frac=1.0)[:min(self.img_num_per_id, len(temp))]
+        # マスク
+        score = temp[['score_0', 'score_3', 'score_4', 'score_5']].values
+        score = torch.tensor(score, dtype=torch.float32)
+        # 画像
+        imgs_path = temp['image_id'].values
+        imgs_path = [os.path.join(self.data_dir, path + '.jpg') for path in imgs_path]
+        imgs = []
+        for path in imgs_path:
+            # OpenCV
+            img = cv2.imread(path)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            # 0.0 ~ 1.0
+            img = img / 255
 
-        # OpenCV
-        img = cv2.imread(target_img_path)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            if self.transform is not None:
+                img = self.transform(img, phase=self.phase)
+            imgs.append(img)
 
-        # 0.0 ~ 1.0
-        img = img / 255
+        if len(imgs) != 0:
+            imgs = torch.stack(imgs)
 
-        if self.transform is not None:
-            img = self.transform(img, phase=self.phase)
+        # grade
+        tar_train_row = self.train[self.train['image_id'] == target_id]
+        grade = tar_train_row['isup_grade'].values
+        grade = torch.tensor(grade, dtype=torch.long)
 
-        # img = img.to(torch.int32)
+        return imgs, score, grade, target_id
 
-        label = (target_row['score_0'].values,
-                 target_row['score_3'].values,
-                 target_row['score_4'].values,
-                 target_row['score_5'].values)
 
-        label = torch.tensor(label, dtype=torch.float32)
-        label = label.reshape((-1))
-
-        return img, label

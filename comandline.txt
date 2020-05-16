@@ -1,0 +1,7 @@
+python train.py -exp org_0 -trn_s 0.9 -bs 64 -lr 0.001 -ims 224 -epoch 100
+LB: 0.54
+
+python train.py -exp efn_b4_simple_01 -model b4 -trn_s 0.9 -bs 16 -lr 0.001 -ims 224 -epoch 100
+Augment: HorizontalFrip, Resize
+
+python train_2.py -exp test_0_v1 -trn_s 0.9 -bs 4 -lr 0.001 -ims 224 -imn_id 10 -lim 50 -epoch 100
