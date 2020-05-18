@@ -23,6 +23,7 @@ parser.add_argument('-lr', '--lr', type=float, default=0.0005)
 parser.add_argument('-ims', '--image_size', type=int, default=224)
 parser.add_argument('-epoch', '--num_epoch', type=int, default=100)
 parser.add_argument('--tile', action='store_true')
+parser.add_argument('-tiff_l', '--tiff_level', type=int, default=-1)
 
 arges = parser.parse_args()
 
@@ -35,6 +36,7 @@ num_epochs = arges.num_epoch
 img_size = arges.image_size
 seed = 42
 exp_name = arges.expname
+tiff_level = arges.tiff_level
 model_name = f'efficientnet-{arges.model_name}'
 
 seed_everything(seed)
@@ -50,8 +52,12 @@ train = meta.iloc[:int(len(meta) * train_size)]
 val = meta.iloc[int(len(meta) * train_size):]
 del meta
 
-train_dataset = PANDADataset(train, data_dir, 'train', transform, tiff_level=-1, img_size=img_size, use_tile=arges.tile)
-val_dataset = PANDADataset(val, data_dir, 'val', transform, tiff_level=-1, img_size=img_size, use_tile=arges.tile)
+train_dataset = PANDADataset(train, data_dir, 'train', transform,
+                             tiff_level=tiff_level, img_size=img_size, use_tile=arges.tile,
+                             tile_img_size=int(img_size/2))
+val_dataset = PANDADataset(val, data_dir, 'val', transform,
+                           tiff_level=tiff_level, img_size=img_size, use_tile=arges.tile,
+                           tile_img_size=int(img_size/2))
 dataloaders = {
     'train': DataLoader(train_dataset, batch_size=batch_size, shuffle=True),
     'val': DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
@@ -65,7 +71,7 @@ print('Use Tile: ', arges.tile)
 net = ModelEFN(model_name=model_name, output_size=6)
 optimizer = optim.Adam(net.parameters(), lr=lr)
 criterion = nn.CrossEntropyLoss(reduction='mean')
-scheduler = StepLR(optimizer, step_size=3, gamma=0.5)
+scheduler = StepLR(optimizer, step_size=5, gamma=0.5)
 
 trainer = Trainer(dataloaders, net, device, num_epochs, criterion, optimizer, scheduler, exp=exp_name)
 

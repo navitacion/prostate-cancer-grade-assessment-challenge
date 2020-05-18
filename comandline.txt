@@ -26,32 +26,12 @@ tiff_level=-1
 python train.py -exp efn_b0_simple_04 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -epoch 100 --tile
 
 
+
 タイルのサイズを1/3(75)にして同様に実行
 python train.py -exp efn_b0_simple_05 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -epoch 100 --tile
 
 
 
-
-
-
-
-
-
-# EFN-b4
-python train.py -exp efn_b4_simple_01 -model b4 -trn_s 0.9 -bs 16 -lr 0.001 -ims 224 -epoch 100
-Augment: HorizontalFrip, Resize
-LB: 0.59
-
-# imageの前処理を変更
-img = 1.0 - (img /255.0)
-python train.py -exp efn_b4_simple_02 -model b4 -trn_s 0.9 -bs 16 -lr 0.001 -ims 224 -epoch 100
-Augment: HorizontalFrip, Resize
-LB: 0.60
-
-
-# imageの前処理を変更
-img = 255.0 - img
-albuは0-255のままnormalizeで処理したほうがきちんと変換できているような気がする
-python train.py -exp efn_b4_simple_03 -model b4 -trn_s 0.9 -bs 16 -lr 0.001 -ims 224 -epoch 100
-
-
+tiff_level=1にして高解像度画像を対象に実行
+タイルのサイズを1/2にして同様に実行
+python train.py -exp efn_b0_simple_06 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -epoch 100 -tiff_l 1 --tile
