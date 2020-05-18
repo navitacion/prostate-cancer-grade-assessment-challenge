@@ -6,7 +6,7 @@ from efficientnet_pytorch import EfficientNet
 
 
 class ModelEFN(nn.Module):
-    def __init__(self, model_name='efficientnet-b0', output_size=1):
+    def __init__(self, model_name='efficientnet-b0', output_size=6):
         super(ModelEFN, self).__init__()
         self.base = EfficientNet.from_pretrained(model_name=model_name, num_classes=512)
 

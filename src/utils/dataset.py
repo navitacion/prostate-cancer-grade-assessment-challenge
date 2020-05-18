@@ -19,7 +19,7 @@ else:
     sep = '/'
 
 
-def pad_and_tile(img, img_size):
+def pad_and_tile(img, img_size, img_num=12):
     # Padding
     H, W = img.shape[:2]
     pad_h = (img_size - H % img_size) % img_size
@@ -28,7 +28,7 @@ def pad_and_tile(img, img_size):
     padded_img = np.pad(
         img,
         pad_width=[[pad_h // 2, pad_h - pad_h // 2], [pad_w // 2, pad_w - pad_w // 2], [0, 0]],
-        constant_values=255
+        constant_values=0
     )
 
     new_H, new_W = padded_img.shape[:2]
@@ -41,23 +41,34 @@ def pad_and_tile(img, img_size):
         for w in range(int(new_W / img_size)):
             # Trim
             _img = padded_img[h * img_size:(h + 1) * img_size,
-                   w * img_size:(w + 1) * img_size, :]
+                              w * img_size:(w + 1) * img_size, :]
 
-            # 何も写ってない場合は除外
-            flag = 255 - _img
-            flag = np.sum(flag)
+            img_list.append(_img)
 
-            if flag != 0:
-                img_list.append(_img)
-            else:
-                pass
+    if len(img_list) < img_num:
+        while True:
+            img_list.append(np.zeros((img_size, img_size, 3)))
+            if len(img_list) == img_num:
+                break
+
+    flag = np.array([np.sum(img) for img in img_list])
+    flag = np.argsort(flag)[::-1][:img_num]
+
+    img_list = np.stack(img_list, axis=0)
+    img_list = img_list[flag]
 
     return img_list
 
 
 class PANDADataset(Dataset):
+    """
+    Dataset
+    画像とラベルを出力するデータセット
+    use_tileで画像を分割するかどうかを指定できる
+    """
 
-    def __init__(self, meta, data_dir, phase='train', transform=None, tiff_level=-1, use_tile=False, img_size=224):
+    def __init__(self, meta, data_dir, phase='train', transform=None, tiff_level=-1, use_tile=False, img_size=224,
+                 img_num=12, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
         self.meta = meta
         self.data_dir = data_dir
         self.phase = phase
@@ -65,6 +76,9 @@ class PANDADataset(Dataset):
         self.tiff_level = tiff_level
         self.use_tile = use_tile
         self.img_size = img_size
+        self.img_num = img_num
+        self.mean = mean
+        self.std = std
 
     def __len__(self):
         return len(self.meta)
@@ -89,26 +103,26 @@ class PANDADataset(Dataset):
             img = img[:, :, :3]
 
         slide.close()
+
+        # 画像の数値変換
+        img = 255.0 - img
+
         # タイル状にして複数の画像にする
+        # タイルサイズをpad_and_tileの第2引数に取る
         if self.use_tile:
-            img_list = pad_and_tile(img, self.img_size)
+            img = pad_and_tile(img, int(self.img_size / 3), self.img_num)
+            # 複数のタイルをつなぎ合わせて1枚の画像にする
+            img = cv2.hconcat(
+                [cv2.vconcat([img[0], img[1], img[2], img[3]]),
+                 cv2.vconcat([img[4], img[5], img[6], img[7]]),
+                 cv2.vconcat([img[8], img[9], img[10], img[11]])])
 
-            if self.transform is not None:
-                img_list = [self.transform(img) for img in img_list]
-            else:
-                img_list = [torch.tensor(img).permute(2, 0, 1) for img in img_list]
-
-            if len(img_list) != 0:
-                return torch.stack(img_list), target_id
-            else:
-                return None, label
-
+        if self.transform is not None:
+            img = self.transform(img)
         else:
-            if self.transform is not None:
-                img = self.transform(img)
-            else:
-                img = torch.tensor(img).permute(2, 0, 1)
-            return img, label
+            img = torch.tensor(img).permute(2, 0, 1)
+        img = img.to(torch.float32)
+        return img, label
 
 
 class PANDADataset_2(Dataset):

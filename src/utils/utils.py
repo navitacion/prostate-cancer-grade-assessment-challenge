@@ -18,25 +18,6 @@ def seed_everything(seed=1234):
     torch.backends.cudnn.benchmark = False
 
 
-def get_dataloaders(data_dir, train, train_size=0.8, batch_size=128, transform=None):
-    # Data Loading
-    img_path = glob.glob(os.path.join(data_dir, '*.jpg'))
-    random.shuffle(img_path)
-    train_img_path = img_path[:int(len(img_path) * train_size)]
-    val_img_path = img_path[int(len(img_path) * train_size):]
-    score_df = pd.read_csv(os.path.join(data_dir, 'res.csv'))
-
-    train_dataset = PANDADataset(train_img_path, score_df, train, transform, phase='train')
-    val_dataset = PANDADataset(val_img_path, score_df, train, transform, phase='val')
-
-    dataloaders = {
-        'train': DataLoader(train_dataset, batch_size=batch_size, shuffle=True),
-        'val': DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-    }
-
-    return dataloaders
-
-
 def get_dataloaders_2(data_dir, score_df, train, transform=None, train_size=0.8, batch_size=128, img_num_per_id=50):
 
     image_ids, c = np.unique([t.split('_')[0] for t in score_df['image_id']], return_counts=True)

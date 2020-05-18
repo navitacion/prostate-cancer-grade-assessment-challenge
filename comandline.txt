@@ -1,7 +1,57 @@
-python train.py -exp org_0 -trn_s 0.9 -bs 64 -lr 0.001 -ims 224 -epoch 100
-LB: 0.54
 
+# EFN-b0
+
+# valがすぐ頭打ちになる
+train_sizeを調整する
+python train.py -exp efn_b0_simple_01 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -epoch 100
+LB 0.63
+
+
+albuを増やす
+python train.py -exp efn_b0_simple_02 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -epoch 100
+LB: 0.59
+
+
+
+tileを使って12つの画像を結合させたものをインプットとする
+横4縦3枚でconcatして結合させた
+tiff_level=-1
+python train.py -exp efn_b0_simple_03 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -epoch 100 --tile
+LB: 0.64
+
+
+上と同じ内容　tileのサイズを調整する
+tileのサイズをimg_sizeの半分にすることでひとつひとつのタイルの情報を多くする
+tiff_level=-1
+python train.py -exp efn_b0_simple_04 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -epoch 100 --tile
+
+
+タイルのサイズを1/3(75)にして同様に実行
+python train.py -exp efn_b0_simple_05 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -epoch 100 --tile
+
+
+
+
+
+
+
+
+
+# EFN-b4
 python train.py -exp efn_b4_simple_01 -model b4 -trn_s 0.9 -bs 16 -lr 0.001 -ims 224 -epoch 100
 Augment: HorizontalFrip, Resize
+LB: 0.59
 
-python train_2.py -exp test_0_v1 -trn_s 0.9 -bs 4 -lr 0.001 -ims 224 -imn_id 10 -lim 50 -epoch 100
+# imageの前処理を変更
+img = 1.0 - (img /255.0)
+python train.py -exp efn_b4_simple_02 -model b4 -trn_s 0.9 -bs 16 -lr 0.001 -ims 224 -epoch 100
+Augment: HorizontalFrip, Resize
+LB: 0.60
+
+
+# imageの前処理を変更
+img = 255.0 - img
+albuは0-255のままnormalizeで処理したほうがきちんと変換できているような気がする
+python train.py -exp efn_b4_simple_03 -model b4 -trn_s 0.9 -bs 16 -lr 0.001 -ims 224 -epoch 100
+
+

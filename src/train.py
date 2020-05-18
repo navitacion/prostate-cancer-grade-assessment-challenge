@@ -7,9 +7,9 @@ import pandas as pd
 import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader
-from torch.optim.lr_scheduler import StepLR
+from torch.optim.lr_scheduler import StepLR, CosineAnnealingWarmRestarts
 
-from utils import seed_everything, ImageTransform, PANDADataset, Trainer, get_dataloaders
+from utils import seed_everything, ImageTransform, PANDADataset, Trainer
 from model import ModelEFN
 
 
@@ -22,6 +22,7 @@ parser.add_argument('-bs', '--batch_size', type=int, default=128)
 parser.add_argument('-lr', '--lr', type=float, default=0.0005)
 parser.add_argument('-ims', '--image_size', type=int, default=224)
 parser.add_argument('-epoch', '--num_epoch', type=int, default=100)
+parser.add_argument('--tile', action='store_true')
 
 arges = parser.parse_args()
 
@@ -34,6 +35,7 @@ num_epochs = arges.num_epoch
 img_size = arges.image_size
 seed = 42
 exp_name = arges.expname
+model_name = f'efficientnet-{arges.model_name}'
 
 seed_everything(seed)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -43,14 +45,13 @@ data_dir = '../data/input/train_images'
 meta = pd.read_csv('../data/input/train.csv')
 transform = ImageTransform(img_size)
 meta = meta.sample(frac=1.0).reset_index(drop=True)
+# Train Validation
 train = meta.iloc[:int(len(meta) * train_size)]
 val = meta.iloc[int(len(meta) * train_size):]
-print(len(train))
-print(len(val))
 del meta
 
-train_dataset = PANDADataset(train, data_dir, 'train', transform)
-val_dataset = PANDADataset(val, data_dir, 'val', transform)
+train_dataset = PANDADataset(train, data_dir, 'train', transform, tiff_level=-1, img_size=img_size, use_tile=arges.tile)
+val_dataset = PANDADataset(val, data_dir, 'val', transform, tiff_level=-1, img_size=img_size, use_tile=arges.tile)
 dataloaders = {
     'train': DataLoader(train_dataset, batch_size=batch_size, shuffle=True),
     'val': DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
@@ -59,8 +60,9 @@ dataloaders = {
 print('Data Num')
 print('Train: ', len(dataloaders['train']))
 print('Val: ', len(dataloaders['val']))
+print('Use Tile: ', arges.tile)
 
-net = ModelEFN(model_name=f'efficientnet-{arges.model_name}', output_size=6)
+net = ModelEFN(model_name=model_name, output_size=6)
 optimizer = optim.Adam(net.parameters(), lr=lr)
 criterion = nn.CrossEntropyLoss(reduction='mean')
 scheduler = StepLR(optimizer, step_size=3, gamma=0.5)

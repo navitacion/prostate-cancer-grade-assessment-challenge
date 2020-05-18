@@ -3,4 +3,4 @@ from .trainer import Trainer, Trainer_2
 from .preprocessing import PANDAImagePreprocessing
 from .image_transform import ImageTransform
 from .utils import seed_everything
-from .utils import get_dataloaders, get_dataloaders_2
+from .utils import get_dataloaders_2
