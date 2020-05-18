@@ -18,35 +18,42 @@ from utils.dataset import PANDADataset, PANDADataset_2
 from model import Model_2, ModelEFN
 
 
-train = pd.read_csv('../data/input/train.csv')
-data_dir = '../data/input/train_images'
-transform = ImageTransform(224)
+img_path = '../data/grid_224/0018ae58b01bdadc8e347995b69f99aa_108_20.jpg'
 
+img = cv2.imread(img_path)
+img = 255 - img
+plt.imshow(img)
+plt.show()
 
-dataset = PANDADataset(train, data_dir, 'train', transform, use_tile=False, img_size=224, tiff_level=-1, img_num=12)
-dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
-model = ModelEFN()
-
-print(len(dataloader.dataset))
-
-img, label = dataset.__getitem__(0)
-print(img.size())
-print(label)
-print(img.max())
-print(img.min())
-print(img.mean())
-print(img.std())
-
-
-for img, label in dataloader:
-
-    print(img.size())
-
-    img = img[0].permute(2, 1, 0)
-    img = img * 255
-    plt.imshow(img)
-    plt.show()
-
-    break
+# train = pd.read_csv('../data/input/train.csv')
+# data_dir = '../data/input/train_images'
+# transform = ImageTransform(224)
+#
+#
+# dataset = PANDADataset(train, data_dir, 'train', transform, use_tile=False, img_size=224, tiff_level=-1, img_num=12)
+# dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
+# model = ModelEFN()
+#
+# print(len(dataloader.dataset))
+#
+# img, label = dataset.__getitem__(0)
+# print(img.size())
+# print(label)
+# print(img.max())
+# print(img.min())
+# print(img.mean())
+# print(img.std())
+#
+#
+# for img, label in dataloader:
+#
+#     print(img.size())
+#
+#     img = img[0].permute(2, 1, 0)
+#     img = img * 255
+#     plt.imshow(img)
+#     plt.show()
+#
+#     break
 
 

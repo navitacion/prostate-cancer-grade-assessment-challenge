@@ -16,13 +16,15 @@ class PANDAImagePreprocessing:
 
     """
     
-    def __init__(self, target_id, img_size=128, background_rate=0.5, data_dir='../data/input', save_dir='.', tiff_level=0):
+    def __init__(self, target_id, img_size=128, background_rate=0.5, data_dir='../data/input', save_dir='.', tiff_level=0,
+                 data_provider='radboud'):
         self.id = target_id
         self.img_size = img_size
         self.background_rate = background_rate
         self.data_dir = data_dir
         self.save_dir = save_dir
         self.tiff_level = tiff_level
+        self.data_provider = data_provider
 
     def _display_img(self):
         """
@@ -135,75 +137,113 @@ class PANDAImagePreprocessing:
             constant_values=255
         )
 
-        padded_mask = np.pad(
-            mask,
-            pad_width=[[pad_h // 2, pad_h - pad_h // 2], [pad_w // 2, pad_w - pad_w // 2], [0, 0]],
-            constant_values=0
-        )
-
         new_H, new_W = padded_img.shape[:2]
 
-        del img, mask
+        del img
         gc.collect()
 
         print('Calculating Score per Grid')
-        for h in range(int(new_H / self.img_size)):
-            for w in range(int(new_W / self.img_size)):
-                # トリミングする
-                _mask = padded_mask[h * self.img_size:(h + 1) * self.img_size,
-                                    w * self.img_size:(w + 1) * self.img_size, :]
-                # Channelで足す
-                _mask = np.sum(_mask, axis=2)
+        # radboudは画像とマスクを同時に処理する
+        if self.data_provider == 'radboud':
+            # maskをpadding
+            padded_mask = np.pad(
+                mask,
+                pad_width=[[pad_h // 2, pad_h - pad_h // 2], [pad_w // 2, pad_w - pad_w // 2], [0, 0]],
+                constant_values=0
+            )
+            del mask
+            gc.collect()
 
-                # 0: 背景
-                # 1: stroma(灰色)  = 153
-                _mask = np.where(_mask == 153, 0, _mask)
-                # 2: benign epithelium(緑)  = 306
-                _mask = np.where(_mask == 306, 0, _mask)
-                # 3: Gleason 3(淡黄色)  255, 255, 178 = = 688  score=3
-                _mask = np.where(_mask == 688, 3, _mask)
-                # 4: Gleason 4(オレンジ)   255, 127, 0 = 382   score=4
-                _mask = np.where(_mask == 382, 4, _mask)
-                # 5: Gleason 5(赤)   255, 0, 0 = (255 * 1.0 = 255)   score=5
-                _mask = np.where(_mask == 255, 5, _mask)
+            for h in range(int(new_H / self.img_size)):
+                for w in range(int(new_W / self.img_size)):
+                    # トリミングする
+                    _mask = padded_mask[h * self.img_size:(h + 1) * self.img_size,
+                                        w * self.img_size:(w + 1) * self.img_size, :]
+                    # Channelで足す
+                    _mask = np.sum(_mask, axis=2)
 
-                u, counts = np.unique(_mask, return_counts=True)
-                _dict = {f'score_{k}': [v] for k, v in zip(u, counts)}
+                    # 0: 背景
+                    # 1: stroma(灰色)  = 153
+                    _mask = np.where(_mask == 153, 1, _mask)
+                    # 2: benign epithelium(緑)  = 306
+                    _mask = np.where(_mask == 306, 2, _mask)
+                    # 3: Gleason 3(淡黄色)  255, 255, 178 = = 688  score=3
+                    _mask = np.where(_mask == 688, 3, _mask)
+                    # 4: Gleason 4(オレンジ)   255, 127, 0 = 382   score=4
+                    _mask = np.where(_mask == 382, 4, _mask)
+                    # 5: Gleason 5(赤)   255, 0, 0 = (255 * 1.0 = 255)   score=5
+                    _mask = np.where(_mask == 255, 5, _mask)
 
-                for score in ['score_0', 'score_3', 'score_4', 'score_5']:
-                    if score not in _dict:
-                        _dict[score] = [0]
+                    u, counts = np.unique(_mask, return_counts=True)
+                    _dict = {f'score_{k}': [v] for k, v in zip(u, counts)}
 
-                _dict['image_id'] = [self.id + f'_{h}_{w}']  # グリッドのインデックスをファイル名に付与
-                _res = pd.DataFrame(_dict)
+                    for score in ['score_0', 'score_1', 'score_2', 'score_3', 'score_4', 'score_5']:
+                        if score not in _dict:
+                            _dict[score] = [0]
 
-                res = pd.concat([res, _res], axis=0, ignore_index=True)
+                    _dict['image_id'] = [self.id + f'_{h}_{w}']  # グリッドのインデックスをファイル名に付与
+                    _res = pd.DataFrame(_dict)
 
-        # 割合を計算（1グリッドごとの全ピクセルで除算）
-        res['score_0'] = res['score_0'] / (self.img_size * self.img_size)
-        res['score_3'] = res['score_3'] / (self.img_size * self.img_size)
-        res['score_4'] = res['score_4'] / (self.img_size * self.img_size)
-        res['score_5'] = res['score_5'] / (self.img_size * self.img_size)
+                    res = pd.concat([res, _res], axis=0, ignore_index=True)
 
-        # 背景が多い画像は対象外とする
-        _res = res[res['score_0'] < self.background_rate].reset_index(drop=True)
-        # 対象の画像をトリミングし保存する
-        print('Saving Image Num: ', len(_res))
-        for i in range(len(_res)):
-            image_id = _res['image_id'].loc[i]
-            save_img_h = int(image_id.split('_')[1])
-            save_img_w = int(image_id.split('_')[2])
-            # 画像をトリミング
-            _img = padded_img[save_img_h * self.img_size:(save_img_h + 1) * self.img_size,
-                              save_img_w * self.img_size:(save_img_w + 1) * self.img_size, :]
-            _mask = padded_mask[save_img_h * self.img_size:(save_img_h + 1) * self.img_size,
-                                save_img_w * self.img_size:(save_img_w + 1) * self.img_size, :]
+            # 割合を計算（1グリッドごとの全ピクセルで除算）
+            for score in ['score_0', 'score_1', 'score_2', 'score_3', 'score_4', 'score_5']:
+                res[score] = res[score] / (self.img_size * self.img_size)
 
-            # PIL形式に変換しjpgで保存
-            _img = Image.fromarray(_img)
-            _img.save(os.path.join(self.save_dir, image_id + '.jpg'))
+            # 背景が多い画像は対象外とする
+            _res = res[res['score_0'] < self.background_rate].reset_index(drop=True)
+            # 対象の画像をトリミングし保存する
+            print('Saving Image Num: ', len(_res))
+            for i in range(len(_res)):
+                image_id = _res['image_id'].loc[i]
+                save_img_h = int(image_id.split('_')[1])
+                save_img_w = int(image_id.split('_')[2])
+                # 画像をトリミング
+                _img = padded_img[save_img_h * self.img_size:(save_img_h + 1) * self.img_size,
+                                  save_img_w * self.img_size:(save_img_w + 1) * self.img_size, :]
+                _mask = padded_mask[save_img_h * self.img_size:(save_img_h + 1) * self.img_size,
+                                    save_img_w * self.img_size:(save_img_w + 1) * self.img_size, :]
 
-        print('Finish')
-        print('#'*30)
+                # PIL形式に変換しjpgで保存
+                _img = Image.fromarray(_img)
+                _img.save(os.path.join(self.save_dir, image_id + '.jpg'))
 
-        return _res
+            print('Finish')
+            print('#'*30)
+            del _img, _mask, res
+            gc.collect()
+
+            return _res
+
+        # karolinskaは画像だけ処理する
+        elif self.data_provider == 'karolinska':
+
+            for h in range(int(new_H / self.img_size)):
+                for w in range(int(new_W / self.img_size)):
+                    # トリミングする
+                    _img = padded_img[h * self.img_size:(h + 1) * self.img_size,
+                                      w * self.img_size:(w + 1) * self.img_size, :]
+
+                    # 背景がbackground_rate以下の場合はjpeg化しない
+                    # 背景が255なので255 - imgを行い背景=0とする
+                    flag = 255 - _img.copy()
+                    # channel方向で足し算を行う (img_size, img_size, 1)
+                    flag = np.sum(flag, axis=2)
+                    # 背景じゃない場合は1、背景の場合は0のままにする
+                    flag = np.where(flag != 0, 1, 0)
+                    # 全体の和を算出し背景ではない割合を計算する
+                    rate = np.sum(flag) / (self.img_size * self.img_size)
+                    # (1 - 背景ではない割合)→背景の割合がbackground_rateより小さい場合は画像化する
+                    if self.background_rate > (1 - rate):
+                        _img = Image.fromarray(_img)
+                        img_name = self.id + f'_{h}_{w}'
+                        _img.save(os.path.join(self.save_dir, img_name + '.jpg'))
+                    else:
+                        pass
+
+                    del _img, flag, rate
+                    gc.collect()
+
+            return None
+
+
