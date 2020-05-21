@@ -68,7 +68,7 @@ class PANDADataset(Dataset):
     """
 
     def __init__(self, meta, data_dir, phase='train', transform=None, tiff_level=-1, use_tile=False, img_size=224,
-                 img_num=12, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), tile_img_size=224):
+                 img_num=16, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), tile_img_size=224):
         self.meta = meta
         self.data_dir = data_dir
         self.phase = phase
@@ -112,11 +112,23 @@ class PANDADataset(Dataset):
         # タイルサイズをpad_and_tileの第2引数に取る
         if self.use_tile:
             img = pad_and_tile(img, self.tile_img_size, self.img_num)
-            # 複数のタイルをつなぎ合わせて1枚の画像にする
-            img = cv2.hconcat(
-                [cv2.vconcat([img[0], img[1], img[2], img[3]]),
-                 cv2.vconcat([img[4], img[5], img[6], img[7]]),
-                 cv2.vconcat([img[8], img[9], img[10], img[11]])])
+            if self.img_num == 16:
+                # 複数のタイルをつなぎ合わせて1枚の画像にする
+                # (4, 4)
+                img = cv2.hconcat([
+                    cv2.vconcat([img[0], img[1], img[2], img[3]]),
+                    cv2.vconcat([img[4], img[5], img[6], img[7]]),
+                    cv2.vconcat([img[8], img[9], img[10], img[11]]),
+                    cv2.vconcat([img[12], img[13], img[14], img[15]])
+                ])
+
+            elif self.img_num == 12:
+                # (4, 3)
+                img = cv2.hconcat([
+                    cv2.vconcat([img[0], img[1], img[2], img[3]]),
+                    cv2.vconcat([img[4], img[5], img[6], img[7]]),
+                    cv2.vconcat([img[8], img[9], img[10], img[11]])
+                ])
 
         if self.transform is not None:
             img = self.transform(img)

@@ -9,7 +9,7 @@ from torch import nn, optim
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import StepLR, CosineAnnealingWarmRestarts
 
-from utils import seed_everything, ImageTransform, PANDADataset, Trainer
+from utils import seed_everything, ImageTransform, ImageTransform_2, PANDADataset, Trainer
 from model import ModelEFN
 
 
@@ -17,47 +17,51 @@ from model import ModelEFN
 parser = argparse.ArgumentParser()
 parser.add_argument('-exp', '--expname')
 parser.add_argument('-model', '--model_name', default='b0')
-parser.add_argument('-trn_s', '--train_size', type=float, default=0.95)
+parser.add_argument('-trn_s', '--train_size', type=float, default=0.8)
 parser.add_argument('-bs', '--batch_size', type=int, default=128)
 parser.add_argument('-lr', '--lr', type=float, default=0.0005)
 parser.add_argument('-ims', '--image_size', type=int, default=224)
+parser.add_argument('-t_ims', '--tile_image_size', type=int, default=224)
+parser.add_argument('-img_n', '--img_num', type=int, default=12)
 parser.add_argument('-epoch', '--num_epoch', type=int, default=100)
 parser.add_argument('--tile', action='store_true')
 parser.add_argument('-tiff_l', '--tiff_level', type=int, default=-1)
 
 arges = parser.parse_args()
+seed = 42
+seed_everything(seed)
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+# Config  ################################################################
+config = {
+    'tiff_level': arges.tiff_level,
+    'img_size': arges.image_size,
+    'use_tile': arges.tile,
+    'img_num': arges.img_num,
+    'tile_img_size': arges.tile_image_size
+}
 
-# Config
 train_size = arges.train_size
 batch_size = arges.batch_size
 lr = arges.lr
 num_epochs = arges.num_epoch
-img_size = arges.image_size
-seed = 42
 exp_name = arges.expname
-tiff_level = arges.tiff_level
 model_name = f'efficientnet-{arges.model_name}'
 
-seed_everything(seed)
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-# Data Loading
+# Data Loading  ################################################################
 data_dir = '../data/input/train_images'
 meta = pd.read_csv('../data/input/train.csv')
-transform = ImageTransform(img_size)
+transform = ImageTransform_2(config['img_size'])
 meta = meta.sample(frac=1.0).reset_index(drop=True)
-# Train Validation
+# Train Validation Split
 train = meta.iloc[:int(len(meta) * train_size)]
 val = meta.iloc[int(len(meta) * train_size):]
 del meta
 
-train_dataset = PANDADataset(train, data_dir, 'train', transform,
-                             tiff_level=tiff_level, img_size=img_size, use_tile=arges.tile,
-                             tile_img_size=int(img_size/2))
-val_dataset = PANDADataset(val, data_dir, 'val', transform,
-                           tiff_level=tiff_level, img_size=img_size, use_tile=arges.tile,
-                           tile_img_size=int(img_size/2))
+# Dataset, DataLoader  ################################################################
+train_dataset = PANDADataset(train, data_dir, 'train', transform, **config)
+val_dataset = PANDADataset(val, data_dir, 'val', transform, **config)
+
 dataloaders = {
     'train': DataLoader(train_dataset, batch_size=batch_size, shuffle=True),
     'val': DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
@@ -68,13 +72,14 @@ print('Train: ', len(dataloaders['train']))
 print('Val: ', len(dataloaders['val']))
 print('Use Tile: ', arges.tile)
 
+# Model  ################################################################
 net = ModelEFN(model_name=model_name, output_size=6)
 optimizer = optim.Adam(net.parameters(), lr=lr)
 criterion = nn.CrossEntropyLoss(reduction='mean')
 scheduler = StepLR(optimizer, step_size=5, gamma=0.5)
 
+# Train  ################################################################
 trainer = Trainer(dataloaders, net, device, num_epochs, criterion, optimizer, scheduler, exp=exp_name)
-
 trainer.train()
 
 

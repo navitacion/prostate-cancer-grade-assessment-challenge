@@ -191,11 +191,11 @@ class PANDAImagePreprocessing:
                 res[score] = res[score] / (self.img_size * self.img_size)
 
             # 背景が多い画像は対象外とする
-            _res = res[res['score_0'] < self.background_rate].reset_index(drop=True)
+            res = res[res['score_0'] < self.background_rate].reset_index(drop=True)
             # 対象の画像をトリミングし保存する
-            print('Saving Image Num: ', len(_res))
-            for i in range(len(_res)):
-                image_id = _res['image_id'].loc[i]
+            print('Saving Image Num: ', len(res))
+            for i in range(len(res)):
+                image_id = res['image_id'].loc[i]
                 save_img_h = int(image_id.split('_')[1])
                 save_img_w = int(image_id.split('_')[2])
                 # 画像をトリミング
@@ -205,15 +205,18 @@ class PANDAImagePreprocessing:
                                     save_img_w * self.img_size:(save_img_w + 1) * self.img_size, :]
 
                 # PIL形式に変換しjpgで保存
-                _img = Image.fromarray(_img)
-                _img.save(os.path.join(self.save_dir, image_id + '.jpg'))
+                if not os.path.exists(os.path.join(self.save_dir, image_id + '.jpg')):
+                    _img = Image.fromarray(_img)
+                    _img.save(os.path.join(self.save_dir, image_id + '.jpg'))
 
             print('Finish')
             print('#'*30)
-            del _img, _mask, res
+            _img = None
+            _mask = None
+            del _img, _mask
             gc.collect()
 
-            return _res
+            return res
 
         # karolinskaは画像だけ処理する
         elif self.data_provider == 'karolinska':
@@ -235,9 +238,10 @@ class PANDAImagePreprocessing:
                     rate = np.sum(flag) / (self.img_size * self.img_size)
                     # (1 - 背景ではない割合)→背景の割合がbackground_rateより小さい場合は画像化する
                     if self.background_rate > (1 - rate):
-                        _img = Image.fromarray(_img)
                         img_name = self.id + f'_{h}_{w}'
-                        _img.save(os.path.join(self.save_dir, img_name + '.jpg'))
+                        if not os.path.exists(os.path.join(self.save_dir, img_name + '.jpg')):
+                            _img = Image.fromarray(_img)
+                            _img.save(os.path.join(self.save_dir, img_name + '.jpg'))
                     else:
                         pass
 
