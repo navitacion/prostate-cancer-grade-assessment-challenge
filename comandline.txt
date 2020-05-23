@@ -29,7 +29,7 @@ LB: 0.67
 
 タイルのサイズを1/3(75)にして同様に実行
 python train.py -exp efn_b0_simple_05 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -t_ims 75 -epoch 100 -img_n 12 --tile
-LB: 0.70
+LB: 0.70  0.75
 
 
 タイルのサイズを1/2 (4, 3)
@@ -50,9 +50,34 @@ python train.py -exp efn_b0_simple_08 -model b0 -trn_s 0.8 -bs 32 -lr 0.001 -ims
 タイルを(4, 4)で結合する
 タイルサイズを1/3(75)とする
 python train.py -exp efn_b0_simple_09 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -t_ims 75 -epoch 100 -img_n 16 --tile
-
+LB: 0.64
+タイル枚数は12の方がいいのかも
+ただtiffの解像度を上げればいいかもしれん
 
 
 simple_05と同じ条件でaugmentを変える
 ImageTransform_2
 python train.py -exp efn_b0_simple_10 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -t_ims 75 -epoch 100 -img_n 12 --tile
+LB: 0.76
+
+
+ImageTransform_2
+image_size, tile_image_sizeを変更
+python train.py -exp efn_b0_simple_11 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims 256 -t_ims 128 -epoch 100 -img_n 12 --tile
+efn_b0_simple_10とあんま変わんなさそう
+LB: 0.75
+
+
+efn_b0_simple_10と同じ設定でschedulerを変更
+python train.py -exp efn_b0_simple_12 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -t_ims 75 -epoch 100 -img_n 12 -sch cos --tile
+
+
+
+
+# EFN_b4
+現時点で最も制度が高いefn_b0_simple_10の内容でモデルだけ変える
+ImageTransform_2
+python train.py -exp efn_b4_simple_01 -model b4 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -t_ims 75 -epoch 100 -img_n 12 --tile
+
+
+
