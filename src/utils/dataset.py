@@ -20,6 +20,18 @@ else:
 
 
 def pad_and_tile(img, img_size, img_num=12):
+    """
+    画像を複数のタイルに分割し、img_num分の画像を抽出し、再度結合する
+    :param img: ndarray
+        画像
+    :param img_size: int
+        タイルに分割するときの画像サイズ
+        タイルは(3, img_size, img_size)に分割される
+    :param img_num: int
+        再構築する際に使用する画像数
+    :return: ndarray
+        再構築後の画像
+    """
     # Padding
     H, W = img.shape[:2]
     pad_h = (img_size - H % img_size) % img_size
@@ -62,13 +74,38 @@ def pad_and_tile(img, img_size, img_num=12):
 
 class PANDADataset(Dataset):
     """
-    Dataset
     画像とラベルを出力するデータセット
     use_tileで画像を分割するかどうかを指定できる
     """
 
     def __init__(self, meta, data_dir, phase='train', transform=None, tiff_level=-1, use_tile=False, img_size=224,
                  img_num=16, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), tile_img_size=224):
+        """
+        :param meta: dataframe
+            train.csv
+        :param data_dir: str
+            画像が格納されているディレクトリパス
+        :param phase: str
+            学習用(train) or 検証用(val)
+        :param transform:
+            データ拡張、前処理
+        :param tiff_level: int
+            tiffを読み込む際に指定するレベル
+            0：最も解像度が高いもの　-1:最も解像度が低いもの
+        :param use_tile: bool
+            タイルで分割して再構築する処理を加えるかどうか
+        :param img_size: int
+            出力する画像サイズ
+        :param img_num:
+            タイル分割する際に使用する画像数
+            12: (4 * 3)  16: (4 * 4)枚の画像を結合する
+        :param mean: tuple
+            前処理の正規化する際に使用する平均
+        :param std: tuple
+            前処理の正規化する際に使用する標準偏差
+        :param tile_img_size:
+            タイル分割する際にタイルごとの画像サイズ
+        """
         self.meta = meta
         self.data_dir = data_dir
         self.phase = phase
@@ -85,7 +122,6 @@ class PANDADataset(Dataset):
         return len(self.meta)
 
     def __getitem__(self, idx):
-
         target_row = self.meta.iloc[idx]
         target_id = target_row['image_id']
         label = target_row['isup_grade']
@@ -141,15 +177,20 @@ class PANDADataset(Dataset):
 class PANDADataset_2(Dataset):
     """
     前処理済みの画像とマスクスコアを出力する
-    ・
-    画像（batch, num, channel, width, height）
-    マスクスコア
-    isup_grade
-    id
-    を出力
+    事前にrun_prep.pyでタイルごとの画像を保存しておく
     """
 
     def __init__(self, data_dir, df, transform=None, phase='train'):
+        """
+        :param data_dir: str
+            分割した画像の保存先ディレクトリ
+        :param df: dataframe
+            res.csv  image_idごとにマスク値の割合を格納したdataframe
+        :param transform:
+            データ拡張、前処理
+        :param phase: str
+            学習用(train) or 検証用(val)
+        """
         self.data_dir = data_dir
         self.img_path = glob.glob(os.path.join(data_dir, '*.jpg'))
         self.df = df
