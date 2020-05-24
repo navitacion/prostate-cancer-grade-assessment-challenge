@@ -73,7 +73,7 @@ class Trainer:
         train_i, val_i = 0, 0
         best_loss = 1e+9
         best_weights = None
-        count = 1
+        count = 0
 
         for epoch in range(self.num_epochs):
             print('#'*30)
@@ -88,25 +88,28 @@ class Trainer:
                     self.net.eval()
 
                 for i, (img, label) in enumerate(self.dataloaders[phase]):
+                    if img.size()[0] == 1:
+                        continue
 
                     img = img.to(self.device)
                     label = label.to(self.device)
 
+                    # batch_multiplierの回数後にパラメータを更新する
+                    # Multiple minibatch
+                    if (phase == 'train') and (count == 0):
+                        self.optimizer.step()
+                        self.optimizer.zero_grad()
+                        count = self.batch_multiplier
+
                     with torch.set_grad_enabled(phase == 'train'):
                         pred = self.net(img)
-                        loss = self.criterion(pred, label)
+                        loss = self.criterion(pred, label) / self.batch_multiplier
                         if phase == 'train':
                             loss.backward()
+                            count -= 1
 
-                        # batch_multiplierの回数後にパラメータを更新する
-                        if (phase == 'train') and (count == self.batch_multiplier):
-                            self.optimizer.step()
-                            self.optimizer.zero_grad()
-                            count = 1
-                        else:
-                            count += 1
+                    epoch_loss += loss.item() * img.size(0) * self.batch_multiplier
 
-                    epoch_loss += loss.item() * img.size(0)
                     # Cohen Kappa
                     _, pred = torch.max(pred, 1)
                     score = cohen_kappa_score(label.detach().cpu().numpy(), pred.detach().cpu().numpy(),
@@ -212,6 +215,8 @@ class Trainer_2:
                     self.net.eval()
 
                 for i, (img, label) in enumerate(self.dataloaders[phase]):
+                    if img.size()[0] == 1:
+                        continue
 
                     # Training
                     with torch.set_grad_enabled(phase == 'train'):
