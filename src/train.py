@@ -84,5 +84,6 @@ sch_dict = {
 scheduler = sch_dict[arges.scheduler]
 
 # Train  ################################################################
-trainer = Trainer(dataloaders, net, device, num_epochs, criterion, optimizer, scheduler, exp=exp_name)
+trainer = Trainer(dataloaders, net, device, num_epochs, criterion, optimizer, scheduler,
+                  batch_multiplier=5, exp=exp_name)
 trainer.train()

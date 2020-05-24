@@ -23,7 +23,7 @@ class Trainer:
     PANDA Competitionの学習用クラス
     """
     def __init__(self, dataloaders, net, device, num_epochs, criterion, optimizer, scheduler=None,
-                 exp='exp_name', save_weight_path='../weights'):
+                 batch_multiplier=1, exp='exp_name', save_weight_path='../weights'):
         """
         :param dataloaders: dict
             データローダを辞書型に格納したもの
@@ -40,6 +40,9 @@ class Trainer:
             オプティマイザ
         :param scheduler: torch.optim.lr_scheduler
             スケジューラー
+        :param batch_multiplier: int
+            multiple minibatch
+            3: 3バッチごとにパラメータを更新
         :param exp: str
             学習テスト名
         :param save_weight_path: str
@@ -52,6 +55,7 @@ class Trainer:
         self.criterion = criterion
         self.optimizer = optimizer
         self.scheduler = scheduler
+        self.batch_multiplier = batch_multiplier
         self.exp = exp
         self.writer = SummaryWriter(f'../tensorboard/{exp}')
 
@@ -69,6 +73,7 @@ class Trainer:
         train_i, val_i = 0, 0
         best_loss = 1e+9
         best_weights = None
+        count = 1
 
         for epoch in range(self.num_epochs):
             print('#'*30)
@@ -84,7 +89,6 @@ class Trainer:
 
                 for i, (img, label) in enumerate(self.dataloaders[phase]):
 
-                    self.optimizer.zero_grad()
                     img = img.to(self.device)
                     label = label.to(self.device)
 
@@ -93,7 +97,14 @@ class Trainer:
                         loss = self.criterion(pred, label)
                         if phase == 'train':
                             loss.backward()
+
+                        # batch_multiplierの回数後にパラメータを更新する
+                        if (phase == 'train') and (count == self.batch_multiplier):
                             self.optimizer.step()
+                            self.optimizer.zero_grad()
+                            count = 1
+                        else:
+                            count += 1
 
                     epoch_loss += loss.item() * img.size(0)
                     # Cohen Kappa

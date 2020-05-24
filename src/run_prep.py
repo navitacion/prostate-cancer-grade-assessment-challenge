@@ -14,13 +14,14 @@ else:
     sep = '/'
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-s', '--img_size', type=int, default=224)
+parser.add_argument('-s', '--img_size', type=int, default=475)
 args = parser.parse_args()
 
 # Config
 SIZE = args.img_size
 data_dir = '../data/input'
-save_dir = f'../data/grid_{SIZE}_2'
+save_dir = f'../data/grid_{SIZE}'
+save_dir_mask = f'../data/grid_{SIZE}_mask'
 BACKGROUND = 0.7
 
 # データ読み込み
@@ -31,7 +32,7 @@ train = pd.read_csv(os.path.join(data_dir, 'train.csv'))
 masks = glob.glob(os.path.join(data_dir, 'train_label_masks', '*.tiff'))
 masks = [id.split(sep)[-1].split('_')[0] for id in masks]
 train = train[train['image_id'].isin(masks)].reset_index(drop=True)
-# データ提供元を"radboud"のものだけ扱う
+
 del masks
 gc.collect()
 
@@ -53,6 +54,7 @@ with redirect_stdout(open(os.devnull, 'w')):
                                        img_size=SIZE,
                                        background_rate=BACKGROUND,
                                        save_dir=save_dir,
+                                       save_dir_mask=save_dir_mask,
                                        tiff_level=1,
                                        data_provider=data_provider)
 

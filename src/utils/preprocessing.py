@@ -16,13 +16,14 @@ class PANDAImagePreprocessing:
 
     """
     
-    def __init__(self, target_id, img_size=128, background_rate=0.5, data_dir='../data/input', save_dir='.', tiff_level=0,
-                 data_provider='radboud'):
+    def __init__(self, target_id, img_size=128, background_rate=0.5, data_dir='../data/input',
+                 save_dir='.', save_dir_mask='.', tiff_level=0, data_provider='radboud'):
         self.id = target_id
         self.img_size = img_size
         self.background_rate = background_rate
         self.data_dir = data_dir
         self.save_dir = save_dir
+        self.save_dir_mask = save_dir_mask
         self.tiff_level = tiff_level
         self.data_provider = data_provider
 
@@ -208,6 +209,9 @@ class PANDAImagePreprocessing:
                 if not os.path.exists(os.path.join(self.save_dir, image_id + '.jpg')):
                     _img = Image.fromarray(_img)
                     _img.save(os.path.join(self.save_dir, image_id + '.jpg'))
+                if not os.path.exists(os.path.join(self.save_dir_mask, image_id + '_mask.jpg')):
+                    _mask = Image.fromarray(_mask)
+                    _mask.save(os.path.join(self.save_dir_mask, image_id + '_mask.jpg'))
 
             print('Finish')
             print('#'*30)
