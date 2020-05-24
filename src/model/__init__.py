@@ -1,2 +1,1 @@
-from .model import ModelEFN
-from .model import Model_2
+from .model import *

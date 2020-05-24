@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import StepLR
 
 from utils import seed_everything, PANDADataset_2, Trainer_2, ImageTransform, ImageTransform_2
-from model import ModelEFN, Model_2
+from model import ModelEFN, Model_V2
 
 if os.name == 'nt':
     sep = '\\'
@@ -64,7 +64,7 @@ print('Data Num')
 print('Train: ', len(dataloaders['train'].dataset))
 print('Val: ', len(dataloaders['val'].dataset))
 
-net = ModelEFN(model_name=model_name, output_size=6)
+net = Model_V2(output_size=6)
 optimizer = optim.Adam(net.parameters(), lr=lr)
 scheduler = StepLR(optimizer, step_size=5, gamma=0.5)
 
