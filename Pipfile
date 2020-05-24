@@ -24,6 +24,7 @@ openslide-python = "*"
 setuptools = "==45.2.0"
 efficientnet-pytorch = "*"
 tensorboard = "*"
+scikit-learn = "*"
 
 [requires]
 python_version = "3.7"

@@ -79,12 +79,10 @@ optimizer = optim.Adam(net.parameters(), lr=lr)
 criterion = nn.CrossEntropyLoss(reduction='mean')
 sch_dict = {
     'step': StepLR(optimizer, step_size=5, gamma=0.5),
-    'cos': CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=1, eta_min=lr * 0.1)
+    'cos': CosineAnnealingWarmRestarts(optimizer, T_0=5, T_mult=2, eta_min=lr * 0.1)
 }
 scheduler = sch_dict[arges.scheduler]
 
 # Train  ################################################################
 trainer = Trainer(dataloaders, net, device, num_epochs, criterion, optimizer, scheduler, exp=exp_name)
 trainer.train()
-
-

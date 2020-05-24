@@ -140,7 +140,7 @@ class PANDADataset(Dataset):
 
 class PANDADataset_2(Dataset):
     """
-    ある特定の画像IDにおける
+    前処理済みの画像とマスクスコアを出力する
     ・
     画像（batch, num, channel, width, height）
     マスクスコア
@@ -149,50 +149,36 @@ class PANDADataset_2(Dataset):
     を出力
     """
 
-    def __init__(self, score_df, train, img_num_per_id=50, data_dir=None, transform=None, phase='train'):
-        self.score_df = score_df
-        self.train = train
-        self.img_num_per_id = img_num_per_id
+    def __init__(self, data_dir, df, transform=None, phase='train'):
         self.data_dir = data_dir
-        self.target_ids = [t.split('_')[0] for t in np.unique(self.score_df['image_id'].values)]
+        self.img_path = glob.glob(os.path.join(data_dir, '*.jpg'))
+        self.df = df
         self.transform = transform
         self.phase = phase
 
     def __len__(self):
-        return len(self.target_ids)
+        return len(self.df)
 
     def __getitem__(self, idx):
         # 対象のimage_id
-        target_id = self.target_ids[idx]
+        target_row = self.df.iloc[idx]
         # target_idに該当する画像を抽出
-        temp = self.score_df[self.score_df['image_id'].str.contains(target_id)]
-        temp = temp.sample(frac=1.0)[:min(self.img_num_per_id, len(temp))]
-        # マスク
-        score = temp[['score_0', 'score_3', 'score_4', 'score_5']].values
-        score = torch.tensor(score, dtype=torch.float32)
-        # 画像
-        imgs_path = temp['image_id'].values
-        imgs_path = [os.path.join(self.data_dir, path + '.jpg') for path in imgs_path]
-        imgs = []
-        for path in imgs_path:
-            # OpenCV
-            img = cv2.imread(path)
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            # 0.0 ~ 1.0
-            img = img / 255
+        target_id = target_row['image_id']
+        # Score_0~5まで取ってくる
+        label = target_row[1:].values.tolist()
+        label = np.array(label, dtype=np.float32)
 
-            if self.transform is not None:
-                img = self.transform(img, phase=self.phase)
-            imgs.append(img)
+        img = cv2.imread(os.path.join(self.data_dir, f'{target_id}.jpg'))
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = 255 - img
 
-        if len(imgs) != 0:
-            imgs = torch.stack(imgs)
+        if self.transform is not None:
+            img = self.transform(img, phase=self.phase)
+        else:
+            img = torch.tensor(img).permute(2, 0, 1)
 
-        # grade
-        tar_train_row = self.train[self.train['image_id'] == target_id]
-        grade = tar_train_row['isup_grade'].values
-        grade = torch.tensor(grade, dtype=torch.long)
+        label = torch.from_numpy(label)
 
-        return imgs, score, grade, target_id
+        return img, label
 
 

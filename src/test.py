@@ -17,13 +17,26 @@ from utils.image_transform import ImageTransform
 from utils.dataset import PANDADataset, PANDADataset_2
 from model import Model_2, ModelEFN
 
+print([f'score_{v}' for v in np.arange(6)])
 
-img_path = '../data/grid_224/0018ae58b01bdadc8e347995b69f99aa_108_20.jpg'
+# transform = ImageTransform(img_size=128)
+# dataset = PANDADataset_2(data_dir='../data/grid_224_2', transform=transform, phase='train')
+#
+# img, label = dataset.__getitem__(8)
+#
+# print(img.size())
+# print(label)
+# print(label.dtype)
+#
+# print(len(dataset))
 
-img = cv2.imread(img_path)
-img = 255 - img
-plt.imshow(img)
-plt.show()
+# target_id = res.iloc[154]['image_id']
+# img = Image.open(f'../data/grid_224_2/{target_id}.jpg')
+# plt.imshow(img)
+# plt.show()
+#
+# plt.imshow(255 - img)
+# plt.show()
 
 # train = pd.read_csv('../data/input/train.csv')
 # data_dir = '../data/input/train_images'

@@ -69,7 +69,13 @@ LB: 0.75
 
 
 efn_b0_simple_10と同じ設定でschedulerを変更
+cosineanealing T_0=5, T_mult=2
 python train.py -exp efn_b0_simple_12 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -t_ims 75 -epoch 100 -img_n 12 -sch cos --tile
+
+
+
+ImageTransform_2
+python train.py -exp efn_b0_simple_13 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -t_ims 100 -epoch 100 -img_n 12 --tile
 
 
 
@@ -78,6 +84,22 @@ python train.py -exp efn_b0_simple_12 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims
 現時点で最も制度が高いefn_b0_simple_10の内容でモデルだけ変える
 ImageTransform_2
 python train.py -exp efn_b4_simple_01 -model b4 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -t_ims 75 -epoch 100 -img_n 12 --tile
+LB: 0.75
+モデルを変えてもあまり伸びない
 
+
+
+
+
+
+
+
+
+
+
+
+# V2
+ラベルを予測するモデル
+python train_2.py -exp mask_b0_01 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -epoch 100
 
 

@@ -1,4 +1,5 @@
 import os
+import gc
 import glob
 import random
 import argparse
@@ -10,7 +11,7 @@ from torch import nn, optim
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import StepLR
 
-from utils import seed_everything, PANDADataset_2, Trainer, Trainer_2, get_dataloaders, ImageTransform, get_dataloaders_2
+from utils import seed_everything, PANDADataset_2, Trainer_2, ImageTransform, ImageTransform_2
 from model import ModelEFN, Model_2
 
 if os.name == 'nt':
@@ -21,12 +22,11 @@ else:
 # Parser  ################################################################
 parser = argparse.ArgumentParser()
 parser.add_argument('-exp', '--expname', default='test_01_V2')
-parser.add_argument('-trn_s', '--train_size', type=float, default=0.9)
-parser.add_argument('-bs', '--batch_size', type=int, default=10)
-parser.add_argument('-lr', '--lr', type=float, default=0.0005)
+parser.add_argument('-model', '--model_name', default='b0')
+parser.add_argument('-trn_s', '--train_size', type=float, default=0.8)
+parser.add_argument('-bs', '--batch_size', type=int, default=128)
+parser.add_argument('-lr', '--lr', type=float, default=0.001)
 parser.add_argument('-ims', '--image_size', type=int, default=224)
-parser.add_argument('-imn_id', '--image_num_per_id', type=int, default=15)
-parser.add_argument('-lim', '--limit', type=int, default=50)
 parser.add_argument('-epoch', '--num_epoch', type=int, default=100)
 
 arges = parser.parse_args()
@@ -37,24 +37,34 @@ train_size = arges.train_size
 batch_size = arges.batch_size
 lr = arges.lr
 num_epochs = arges.num_epoch
-data_dir = '../data/grid_{}'.format(224)
+data_dir = '../data/grid_224_2'
 seed = 42
-img_num_per_id = arges.image_num_per_id
 exp_name = arges.expname
-limit = arges.limit
+model_name = f'efficientnet-{arges.model_name}'
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-transform = ImageTransform()
-score_df = pd.read_csv(os.path.join(data_dir, 'res.csv'))
-train = pd.read_csv('../data/input/train.csv')
+transform = ImageTransform_2(img_size=arges.image_size)
+df = pd.read_csv(os.path.join(data_dir, 'res.csv'))
+df = df.sample(frac=1.0).reset_index(drop=True)
+train = df.iloc[:int(len(df) * train_size)]
+val = df.iloc[int(len(df) * train_size):]
 
-dataloaders = get_dataloaders_2(data_dir, score_df, train, transform, train_size, batch_size, img_num_per_id)
+del df
+gc.collect()
+
+train_dataset = PANDADataset_2(data_dir, train, transform=transform, phase='train')
+val_dataset = PANDADataset_2(data_dir, val, transform=transform, phase='val')
+
+dataloaders = {
+    'train': DataLoader(train_dataset, batch_size=batch_size, shuffle=True),
+    'val': DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+}
 
 print('Data Num')
-print('Train: ', len(dataloaders['train']))
-print('Val: ', len(dataloaders['val']))
+print('Train: ', len(dataloaders['train'].dataset))
+print('Val: ', len(dataloaders['val'].dataset))
 
-net = Model_2()
+net = ModelEFN(model_name=model_name, output_size=6)
 optimizer = optim.Adam(net.parameters(), lr=lr)
 scheduler = StepLR(optimizer, step_size=5, gamma=0.5)
 
