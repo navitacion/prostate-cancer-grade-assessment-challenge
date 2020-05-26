@@ -1,4 +1,4 @@
-from .dataset import PANDADataset, PANDADataset_2
+from .dataset import *
 from .trainer import Trainer, Trainer_2
 from .preprocessing import PANDAImagePreprocessing
 from .image_transform import *

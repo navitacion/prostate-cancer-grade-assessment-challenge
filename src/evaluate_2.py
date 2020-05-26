@@ -11,7 +11,7 @@ from torch import nn, optim
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import StepLR
 
-from utils import seed_everything, PANDADataset_2, Trainer_2, ImageTransform, ImageTransform_2
+from utils import seed_everything, PANDADataset_3, Trainer_2, ImageTransform, ImageTransform_2
 from model import ModelEFN, Model_V2
 
 if os.name == 'nt':
@@ -33,42 +33,21 @@ arges = parser.parse_args()
 torch.cuda.empty_cache()
 
 # Config
-train_size = arges.train_size
-batch_size = arges.batch_size
-lr = arges.lr
+model_path = '../weights/mask_b0_01_epoch_3_loss_0.004.pth'
 num_epochs = arges.num_epoch
 data_dir = '../data/grid_224_2'
 seed = 42
-exp_name = arges.expname
-model_name = f'efficientnet-{arges.model_name}'
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
 transform = ImageTransform_2(img_size=arges.image_size)
-df = pd.read_csv(os.path.join(data_dir, 'res.csv'))
-df = df.sample(frac=1.0).reset_index(drop=True)
-train = df.iloc[:int(len(df) * train_size)]
-val = df.iloc[int(len(df) * train_size):]
-
-del df
-gc.collect()
-
-train_dataset = PANDADataset_2(data_dir, train, transform=transform, phase='train')
-val_dataset = PANDADataset_2(data_dir, val, transform=transform, phase='val')
-
+img_path = glob.glob(os.path.join(data_dir, '*.jpg'))
+test_dataset = PANDADataset_3(img_path, transform)
+test_dataloader = DataLoader(test_dataset, batch_size=arges.batch_size)
 dataloaders = {
-    'train': DataLoader(train_dataset, batch_size=batch_size, shuffle=True),
-    'val': DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    'test': test_dataloader
 }
 
-print('Data Num')
-print('Train: ', len(dataloaders['train'].dataset))
-print('Val: ', len(dataloaders['val'].dataset))
-
 net = Model_V2(output_size=6)
-optimizer = optim.Adam(net.parameters(), lr=lr)
-scheduler = StepLR(optimizer, step_size=5, gamma=0.5)
+optimizer = optim.Adam(net.parameters(), lr=1e-3)
 
-trainer = Trainer_2(dataloaders, net, device, num_epochs, optimizer, scheduler,
-                    batch_multiplier=3, exp=exp_name)
-
-trainer.train()
+trainer = Trainer_2(dataloaders, net, device, num_epochs, optimizer=None, scheduler=None)
+trainer.evaluate(img_path, transform, model_path=model_path, output_dir='../data/output')

@@ -5,6 +5,7 @@ import cv2
 import datetime
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 from sklearn.metrics import cohen_kappa_score
 import torch
 from torch import nn
@@ -72,6 +73,7 @@ class Trainer:
         print('PANDA Challenge Training Model')
         train_i, val_i = 0, 0
         best_loss = 1e+9
+        best_score = 0
         best_weights = None
         count = 0
 
@@ -118,11 +120,11 @@ class Trainer:
 
                     # Tensorboard
                     if phase == 'train':
-                        self.writer.add_scalar(f'{phase}/batch_loss', loss, train_i)
+                        self.writer.add_scalar(f'{phase}/batch_loss', loss * self.batch_multiplier, train_i)
                         self.writer.add_scalar(f'{phase}/batch_kappa', score, train_i)
                         train_i += 1
                     elif phase == 'val':
-                        self.writer.add_scalar(f'{phase}/batch_loss', loss, val_i)
+                        self.writer.add_scalar(f'{phase}/batch_loss', loss * self.batch_multiplier, val_i)
                         self.writer.add_scalar(f'{phase}/batch_kappa', score, val_i)
                         val_i += 1
 
@@ -137,9 +139,9 @@ class Trainer:
             if self.scheduler is not None:
                 self.scheduler.step()
 
-            if phase == 'val' and epoch_loss < best_loss:
-                best_loss = epoch_loss
-                filename = f'{self.exp}_epoch_{epoch+1}_loss_{best_loss:.3f}.pth'
+            if phase == 'val' and epoch_score > best_score:
+                best_score = epoch_score
+                filename = f'{self.exp}_epoch_{epoch+1}_kappa_{best_score:.3f}.pth'
                 torch.save(self.net.state_dict(), os.path.join(self.save_weight_path, filename))
                 best_weights = self.net.state_dict()
 
@@ -159,7 +161,7 @@ class Trainer_2:
         分割済みの画像とマスククラスの割合を学習する
     """
     def __init__(self, dataloaders, net, device, num_epochs, optimizer, scheduler=None,
-                 exp='exp_name', save_weight_path='../weights'):
+                 batch_multiplier=1, exp='exp_name', save_weight_path='../weights'):
         """
         :param dataloaders: dict
             データローダを辞書型に格納したもの
@@ -185,6 +187,7 @@ class Trainer_2:
         self.num_epochs = num_epochs
         self.optimizer = optimizer
         self.scheduler = scheduler
+        self.batch_multiplier = batch_multiplier
         self.exp = exp
         self.writer = SummaryWriter(f'../tensorboard_2/{exp}')
         self.save_weight_path = save_weight_path
@@ -201,6 +204,7 @@ class Trainer_2:
         best_loss = 1e+9
         best_weights = None
         criterion = nn.MSELoss()
+        count = 0
 
         for epoch in range(self.num_epochs):
             print('#'*30)
@@ -218,28 +222,34 @@ class Trainer_2:
                     if img.size()[0] == 1:
                         continue
 
+                    img = img.to(self.device)
+                    label = label.to(self.device)
+
+                    # batch_multiplierの回数後にパラメータを更新する
+                    # Multiple minibatch
+                    if (phase == 'train') and (count == 0):
+                        self.optimizer.step()
+                        self.optimizer.zero_grad()
+                        count = self.batch_multiplier
+
                     # Training
                     with torch.set_grad_enabled(phase == 'train'):
-                        self.optimizer.zero_grad()
-                        img = img.to(self.device)
-                        label = label.to(self.device)
-
                         out = self.net(img)
                         out = F.softmax(out, dim=1)
-                        loss = criterion(out, label)
+                        loss = criterion(out, label) / self.batch_multiplier
 
                         if phase == 'train':
                             loss.backward()
-                            self.optimizer.step()
+                            count -= 1
 
-                    epoch_loss += loss.item() * img.size(0)
+                    epoch_loss += loss.item() * img.size(0) * self.batch_multiplier
 
                     # Tensorboard
                     if phase == 'train':
-                        self.writer.add_scalar(f'{phase}/batch_loss', loss, train_i)
+                        self.writer.add_scalar(f'{phase}/batch_loss', loss * self.batch_multiplier, train_i)
                         train_i += 1
                     elif phase == 'val':
-                        self.writer.add_scalar(f'{phase}/batch_loss', loss, val_i)
+                        self.writer.add_scalar(f'{phase}/batch_loss', loss * self.batch_multiplier, val_i)
                         val_i += 1
 
                     # Memory Clear
@@ -285,23 +295,35 @@ class Trainer_2:
             出力先ディレクトリ
         """
 
+        print('Evaluate...')
         res = pd.DataFrame()
 
         if model_path is not None:
             self.net.load_state_dict(torch.load(model_path, map_location=self.device))
 
         self.net.eval()
+        self.net = self.net.to(self.device)
 
-        for path in img_path:
-            img_id = path.split(sep)[-1].split('.')[0]
-            img = cv2.imread(path)
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            img = 255 - img
-            img = transform(img, phase='val')
+        for img, img_id in tqdm(self.dataloaders['test']):
+            img = img.to(self.device)
 
             with torch.no_grad():
-                pred = self.net(img)
-                pred = F.softmax(pred, dim=1)
+                pred = 0
+                img = img.to(self.device)
+
+                for f in [
+                    lambda x: x,
+                    lambda x: x.flip(-1),
+                    lambda x: x.flip(-2),
+                    lambda x: x.flip(-1, -2),
+                    lambda x: x.transpose(-1, -2),
+                    lambda x: x.transpose(-1, -2).flip(-1),
+                    lambda x: x.transpose(-1, -2).flip(-2),
+                    lambda x: x.transpose(-1, -2).flip(-1, -2),
+                ]:
+                    pred += F.softmax(self.net(f(img.clone())), 1)
+
+                pred = pred / 8
                 pred = pred.detach().cpu().numpy().tolist()
 
                 pred = pd.DataFrame(pred, columns=[f'score_{v}' for v in np.arange(6)])

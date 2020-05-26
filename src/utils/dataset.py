@@ -223,3 +223,25 @@ class PANDADataset_2(Dataset):
         return img, label
 
 
+class PANDADataset_3(Dataset):
+
+    def __init__(self, img_path, transform=None, phase='val'):
+        self.img_path = img_path
+        self.transform = transform
+        self.phase = phase
+
+    def __getitem__(self, idx):
+        path = self.img_path[idx]
+        img_id = path.split(sep)[-1].split('.')[0]
+        img = cv2.imread(path)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = 255 - img
+        if self.transform is not None:
+            img = self.transform(img, phase=self.phase)
+        else:
+            img = torch.tensor(img).permute(2, 0, 1)
+
+        return img, img_id
+
+    def __len__(self):
+        return len(self.img_path)
