@@ -69,6 +69,6 @@ optimizer = optim.Adam(net.parameters(), lr=lr)
 scheduler = StepLR(optimizer, step_size=5, gamma=0.5)
 
 trainer = Trainer_2(dataloaders, net, device, num_epochs, optimizer, scheduler,
-                    batch_multiplier=3, exp=exp_name)
+                    batch_multiplier=1, exp=exp_name)
 
 trainer.train()

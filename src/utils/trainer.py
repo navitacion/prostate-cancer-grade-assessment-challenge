@@ -203,7 +203,7 @@ class Trainer_2:
         train_i, val_i = 0, 0
         best_loss = 1e+9
         best_weights = None
-        criterion = nn.MSELoss()
+        criterion = nn.MSELoss(reduction='sum')
         count = 0
 
         for epoch in range(self.num_epochs):
@@ -242,7 +242,7 @@ class Trainer_2:
                             loss.backward()
                             count -= 1
 
-                    epoch_loss += loss.item() * img.size(0) * self.batch_multiplier
+                    epoch_loss += loss.item() * self.batch_multiplier
 
                     # Tensorboard
                     if phase == 'train':
@@ -280,7 +280,7 @@ class Trainer_2:
 
         return self.net
 
-    def evaluate(self, img_path, transform, model_path=None, output_dir='../data/output'):
+    def evaluate(self, model_path=None, output_dir='../data/output'):
         """
         学習済みモデルを元に予測結果を返す。
         image_idごとに画像をモデルに適用。score_0~5の6つの割合を計算

@@ -95,6 +95,6 @@ LB: 0.76
 
 # V2
 ラベルを予測するモデル
-python train_2.py -exp mask_b0_01 -model b0 -trn_s 0.8 -bs 256 -lr 0.001 -ims 224 -epoch 100
+python train_2.py -exp mask_b0_01 -model b0 -trn_s 0.8 -bs 128 -lr 0.001 -ims 224 -epoch 100
 
 
