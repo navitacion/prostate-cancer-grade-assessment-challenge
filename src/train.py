@@ -26,7 +26,7 @@ parser.add_argument('-img_n', '--img_num', type=int, default=12)
 parser.add_argument('-epoch', '--num_epoch', type=int, default=100)
 parser.add_argument('--tile', action='store_true')
 parser.add_argument('-tiff_l', '--tiff_level', type=int, default=-1)
-parser.add_argument('-sch', '--scheduler', choices=['step', 'cos'], default='step')
+parser.add_argument('-sch', '--scheduler', choices=['step', 'cos', 'none'], default='step')
 
 arges = parser.parse_args()
 seed = 42
@@ -69,6 +69,10 @@ dataloaders = {
 }
 
 print('Data Num')
+print('Train: ', len(dataloaders['train'].dataset))
+print('Val: ', len(dataloaders['val'].dataset))
+print('#'*30)
+print('Iterarion')
 print('Train: ', len(dataloaders['train']))
 print('Val: ', len(dataloaders['val']))
 print('Use Tile: ', arges.tile)
@@ -78,12 +82,13 @@ net = ModelEFN(model_name=model_name, output_size=6)
 optimizer = optim.Adam(net.parameters(), lr=lr)
 criterion = nn.CrossEntropyLoss(reduction='mean')
 sch_dict = {
-    'step': StepLR(optimizer, step_size=5, gamma=0.5),
-    'cos': CosineAnnealingWarmRestarts(optimizer, T_0=5, T_mult=2, eta_min=lr * 0.1)
+    'step': StepLR(optimizer, step_size=10, gamma=0.5),
+    'cos': CosineAnnealingWarmRestarts(optimizer, T_0=5, T_mult=2, eta_min=lr * 0.1),
+    'none': None
 }
 scheduler = sch_dict[arges.scheduler]
 
 # Train  ################################################################
 trainer = Trainer(dataloaders, net, device, num_epochs, criterion, optimizer, scheduler,
-                  batch_multiplier=5, exp=exp_name)
+                  batch_multiplier=1, exp=exp_name)
 trainer.train()

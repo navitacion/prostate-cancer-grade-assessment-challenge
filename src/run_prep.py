@@ -14,15 +14,15 @@ else:
     sep = '/'
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-s', '--img_size', type=int, default=475)
+parser.add_argument('-s', '--img_size', type=int, default=224)
 args = parser.parse_args()
 
 # Config
 SIZE = args.img_size
 data_dir = '../data/input'
-save_dir = f'../data/grid_{SIZE}'
-save_dir_mask = f'../data/grid_{SIZE}_mask'
-BACKGROUND = 0.7
+save_dir = f'../data/grid_{SIZE}_level_1/img'
+save_dir_mask = f'../data/grid_{SIZE}_level_1/mask'
+BACKGROUND = 0.2
 
 # データ読み込み
 train = pd.read_csv(os.path.join(data_dir, 'train.csv'))

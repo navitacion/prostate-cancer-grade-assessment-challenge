@@ -255,3 +255,120 @@ class PANDAImagePreprocessing:
             return None
 
 
+class PANDAImagePreprocessing_2:
+    """
+    マスク画像全体で、画像ごとの割合を計算する
+    """
+
+    def __init__(self, target_id, data_dir='../data/input', tiff_level=0, data_provider='radboud'):
+        self.id = target_id
+        self.data_dir = data_dir
+        self.tiff_level = tiff_level
+        self.data_provider = data_provider
+
+    def _display_mask(self, data_provider='radboud'):
+        """
+        マスクデータを読み込む
+        :param data_provider:
+        :return: ndarray
+        """
+        assert data_provider in ['radboud', 'karolinska'], "Please Set center=['radboud', 'karolinska']"
+
+        img_path = os.path.join(self.data_dir, 'train_label_masks', f'{self.id}_mask.tiff')
+        # Using Openslide
+        slide = openslide.OpenSlide(img_path)
+        # Set Properties  1: Point   2: Tiff Level   3: Viewing Dimension
+        # .level_count -> Get Tiff Level Count
+        # .level_dimensions -> Get Tiff Width, Height per Level
+        # なぜか読み込めないものもある　一旦例外処理する
+        try:
+            mask_data = slide.read_region((0, 0), self.tiff_level, slide.level_dimensions[self.tiff_level])
+        except:
+            return None
+
+        mask_data = mask_data.split()[0]
+        # To show the masks we map the raw label values to RGB values
+        preview_palette = np.zeros(shape=768, dtype=int)
+        if data_provider == 'radboud':
+            # Mapping
+            preview_palette[0:18] = (np.array(
+                [0, 0, 0,  # background(黒)
+                 51, 51, 51,  # stroma(濃灰色)
+                 102, 102, 102,  # benign epithelium(淡灰色)
+                 255, 255, 178,  # Gleason 3(淡黄色)
+                 255, 127, 0,  # Gleason 4(オレンジ)
+                 255, 0, 0]  # Gleason 5(赤)
+            )).astype(int)
+
+        elif data_provider == 'karolinska':
+            # Mapping
+            preview_palette[0:9] = (np.array(
+                [0, 0, 0,  # background(黒)
+                 127, 127, 127,  # benign(灰色)
+                 255, 0, 0]  # cancer(赤色)
+            )).astype(int)
+
+        mask_data.putpalette(data=preview_palette.tolist())
+        mask_data = mask_data.convert(mode='RGB')
+
+        # PIL -> ndarray
+        mask_data = np.asarray(mask_data)
+        # RGBA -> RGB
+        if mask_data.shape[-1] == 4:
+            mask_data = mask_data[:, :, :3]
+
+        slide.close()
+
+        return mask_data
+
+    def transform(self):
+        """
+        前処理を実行
+        画像とマスクデータを読み込む
+        img_size×img_sizeのグリッドに合うようにpaddingを行い、
+        グリッドごとのマスクデータからそのグリッドにおけるgleason_scoreを集計する
+        グリッドごとの画像をjpg形式で保存（背景の割合がbackground_rate以上のものは無視する）
+        :return: dataframe グリッドごとのgleason_scoreの集計結果
+        """
+        print('Start Preprocessing')
+        print('Target Image ID: ', self.id)
+
+        print('Image Loading...')
+        mask = self._display_mask()
+        if mask is None:
+            return None
+        h = mask.shape[0]
+        w = mask.shape[1]
+
+        print('Calculating Score per Grid')
+        # radboudは画像とマスクを同時に処理する
+        # Channelで足す
+        _mask = np.sum(mask, axis=2)
+
+        # 0: 背景
+        # 1: stroma(灰色)  = 153
+        _mask = np.where(_mask == 153, 1, _mask)
+        # 2: benign epithelium(緑)  = 306
+        _mask = np.where(_mask == 306, 2, _mask)
+        # 3: Gleason 3(淡黄色)  255, 255, 178 = = 688  score=3
+        _mask = np.where(_mask == 688, 3, _mask)
+        # 4: Gleason 4(オレンジ)   255, 127, 0 = 382   score=4
+        _mask = np.where(_mask == 382, 4, _mask)
+        # 5: Gleason 5(赤)   255, 0, 0 = (255 * 1.0 = 255)   score=5
+        _mask = np.where(_mask == 255, 5, _mask)
+
+        u, counts = np.unique(_mask, return_counts=True)
+        _dict = {f'score_{k}': [v] for k, v in zip(u, counts)}
+
+        for score in ['score_0', 'score_1', 'score_2', 'score_3', 'score_4', 'score_5']:
+            if score not in _dict:
+                _dict[score] = [0]
+
+        _dict['image_id'] = [self.id]  # グリッドのインデックスをファイル名に付与
+        res = pd.DataFrame(_dict)
+
+        # 割合を計算（1グリッドごとの全ピクセルで除算）
+        for score in ['score_0', 'score_1', 'score_2', 'score_3', 'score_4', 'score_5']:
+            res[score] = res[score] / (h * w)
+
+        return res

@@ -139,9 +139,10 @@ class Trainer:
             if self.scheduler is not None:
                 self.scheduler.step()
 
-            if phase == 'val' and epoch_score > best_score:
+            if phase == 'val' and epoch_loss < best_loss:
+                best_loss = epoch_loss
                 best_score = epoch_score
-                filename = f'{self.exp}_epoch_{epoch+1}_kappa_{best_score:.3f}.pth'
+                filename = f'{self.exp}_epoch_{epoch+1}_loss_{best_loss:.3f}_kappa_{best_score:.3f}.pth'
                 torch.save(self.net.state_dict(), os.path.join(self.save_weight_path, filename))
                 best_weights = self.net.state_dict()
 

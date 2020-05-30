@@ -224,6 +224,9 @@ class PANDADataset_2(Dataset):
 
 
 class PANDADataset_3(Dataset):
+    """
+    1画像とidを返すデータセット
+    """
 
     def __init__(self, img_path, transform=None, phase='val'):
         self.img_path = img_path
@@ -245,3 +248,84 @@ class PANDADataset_3(Dataset):
 
     def __len__(self):
         return len(self.img_path)
+
+
+class PANDADataset_4(Dataset):
+    """
+    image_preprocessingでタイル状にした画像を読み込み、v,hconcatした画像を出力する
+    image_idに応じて画像を抽出し、その画像からランダムに選ぶ
+    """
+
+    def __init__(self, img_path, df, phase='train', transform=None, img_num=16, img_size=224):
+        self.img_path = img_path
+        self.df = df
+        self.transform = transform
+        self.phase = phase
+        self.img_num = img_num
+        self.img_size = img_size
+
+    def __len__(self):
+        return len(self.df)
+
+    def __getitem__(self, idx):
+        target_row = self.df.iloc[idx]
+        target_id = target_row['image_id']
+
+        target_img_path = [path for path in self.img_path if target_id in path]
+        img = []
+
+        for path in target_img_path:
+            _img = cv2.imread(path)
+            _img = cv2.cvtColor(_img, cv2.COLOR_BGR2RGB)
+            _img = 255 - _img
+
+            img.append(_img)
+
+        if len(img) < self.img_num:
+            while True:
+                img.append(np.zeros((self.img_size, self.img_size, 3)))
+                if len(img) == self.img_num:
+                    break
+
+        img = np.stack(img, axis=0)
+        if self.phase == 'train':
+            # 背景が少ない画像をimg_num * 1.5だけピックアップし、そこからランダムで画像をimg_num分選ぶ
+            flag = np.array([np.sum(im) for im in img])
+            flag = np.argsort(flag)[::-1][:int(self.img_num * 1.5)].tolist()
+            random.seed()
+            random.shuffle(flag)
+            random.seed(42)
+            flag = np.array(flag[:self.img_num])
+        else:
+            # valのときはランダムに選択しないようにする
+            flag = np.array([np.sum(im) for im in img])
+            flag = np.argsort(flag)[::-1][:self.img_num]
+        img = img[flag]
+
+        if self.img_num == 16:
+            # 複数のタイルをつなぎ合わせて1枚の画像にする
+            # (4, 4)
+            img = cv2.hconcat([
+                cv2.vconcat([img[0], img[1], img[2], img[3]]),
+                cv2.vconcat([img[4], img[5], img[6], img[7]]),
+                cv2.vconcat([img[8], img[9], img[10], img[11]]),
+                cv2.vconcat([img[12], img[13], img[14], img[15]])
+            ])
+
+        elif self.img_num == 12:
+            # (4, 3)
+            img = cv2.hconcat([
+                cv2.vconcat([img[0], img[1], img[2], img[3]]),
+                cv2.vconcat([img[4], img[5], img[6], img[7]]),
+                cv2.vconcat([img[8], img[9], img[10], img[11]])
+            ])
+
+        if self.transform is not None:
+            img = self.transform(img, phase=self.phase)
+        else:
+            img = torch.tensor(img).permute(2, 0, 1)
+        img = img.to(torch.float32)
+
+        label = target_row['isup_grade']
+
+        return img, label

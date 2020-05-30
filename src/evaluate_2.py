@@ -33,7 +33,7 @@ arges = parser.parse_args()
 torch.cuda.empty_cache()
 
 # Config
-model_path = '../weights/mask_b0_01_epoch_3_loss_0.004.pth'
+model_path = '../weights/mask_b0_01_epoch_9_loss_0.016.pth'
 num_epochs = arges.num_epoch
 data_dir = '../data/grid_224_2'
 seed = 42

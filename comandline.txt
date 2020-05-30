@@ -71,12 +71,17 @@ LB: 0.75
 efn_b0_simple_10と同じ設定
 batch_multipiler=5としてbatch_size * 5ごとにパラメータを更新するように設定
 python train.py -exp efn_b0_simple_12 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -t_ims 75 -epoch 100 -img_n 12 -sch step --tile
+LB: 0.72
 
 
+# EFN-b2  ####################################################
+ImageTransform_2
+python train.py -exp efn_b2_simple_01 -model b2 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -t_ims 75 -epoch 100 -img_n 12 --tile
+CV: 0.731  LB: 0.74
 
 
-# EFN_b4
-現時点で最も制度が高いefn_b0_simple_10の内容でモデルだけ変える
+# EFN_b4  ####################################################
+現時点で最も精度が高いefn_b0_simple_10の内容でモデルだけ変える
 ImageTransform_2
 python train.py -exp efn_b4_simple_01 -model b4 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -t_ims 75 -epoch 100 -img_n 12 --tile
 LB: 0.76
@@ -84,8 +89,11 @@ LB: 0.76
 
 
 
+# fromjpg  ####################################################
 
-
+# EFN-b0  ####################################################
+# jpgから読み込んだ画像（tiff_level_1）をベースに学習
+python train_fromjpg.py -exp efn_b0_fromjpg_01 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -epoch 100 -img_n 16 -sch none
 
 
 
@@ -95,6 +103,6 @@ LB: 0.76
 
 # V2
 ラベルを予測するモデル
-python train_2.py -exp mask_b0_01 -model b0 -trn_s 0.8 -bs 128 -lr 0.001 -ims 224 -epoch 100
+python train_maskscore.py -exp mask_b0_01 -model b0 -trn_s 0.8 -bs 128 -lr 0.001 -ims 224 -epoch 100
 
 
