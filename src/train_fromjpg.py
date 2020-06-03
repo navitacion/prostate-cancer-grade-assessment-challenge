@@ -49,7 +49,10 @@ exp_name = arges.expname
 model_name = f'efficientnet-{arges.model_name}'
 
 # Data Loading  ################################################################
+# Background_rate = 0.7
 img_path = glob.glob('../data/grid_224_2/*.jpg')
+# Background_rate = 0.2
+# img_path = glob.glob('../data/grid_224_level_1/img/*.jpg')
 meta = pd.read_csv('../data/input/train.csv')
 transform = ImageTransform_2(config['img_size'])
 

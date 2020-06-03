@@ -166,6 +166,17 @@ class PANDADataset(Dataset):
                     cv2.vconcat([img[8], img[9], img[10], img[11]])
                 ])
 
+            elif self.img_num == 36:
+                # (6, 6)
+                img = cv2.hconcat([
+                    cv2.vconcat([img[0], img[1], img[2], img[3], img[4], img[5]]),
+                    cv2.vconcat([img[6], img[7], img[8], img[9], img[10], img[11]]),
+                    cv2.vconcat([img[12], img[13], img[14], img[15], img[16], img[17]]),
+                    cv2.vconcat([img[18], img[19], img[20], img[21], img[22], img[23]]),
+                    cv2.vconcat([img[24], img[25], img[26], img[27], img[28], img[29]]),
+                    cv2.vconcat([img[30], img[31], img[32], img[33], img[34], img[35]]),
+                ])
+
         if self.transform is not None:
             img = self.transform(img)
         else:
@@ -288,18 +299,10 @@ class PANDADataset_4(Dataset):
                     break
 
         img = np.stack(img, axis=0)
-        if self.phase == 'train':
-            # 背景が少ない画像をimg_num * 1.5だけピックアップし、そこからランダムで画像をimg_num分選ぶ
-            flag = np.array([np.sum(im) for im in img])
-            flag = np.argsort(flag)[::-1][:int(self.img_num * 1.5)].tolist()
-            random.seed()
-            random.shuffle(flag)
-            random.seed(42)
-            flag = np.array(flag[:self.img_num])
-        else:
-            # valのときはランダムに選択しないようにする
-            flag = np.array([np.sum(im) for im in img])
-            flag = np.argsort(flag)[::-1][:self.img_num]
+
+        # 背景が少ない画像をピックアップするようにする
+        flag = np.array([np.sum(im) for im in img])
+        flag = np.argsort(flag)[::-1][:self.img_num]
         img = img[flag]
 
         if self.img_num == 16:
@@ -318,6 +321,17 @@ class PANDADataset_4(Dataset):
                 cv2.vconcat([img[0], img[1], img[2], img[3]]),
                 cv2.vconcat([img[4], img[5], img[6], img[7]]),
                 cv2.vconcat([img[8], img[9], img[10], img[11]])
+            ])
+
+        elif self.img_num == 36:
+            # (6, 6)
+            img = cv2.hconcat([
+                cv2.vconcat([img[0], img[1], img[2], img[3], img[4], img[5]]),
+                cv2.vconcat([img[6], img[7], img[8], img[9], img[10], img[11]]),
+                cv2.vconcat([img[12], img[13], img[14], img[15], img[16], img[17]]),
+                cv2.vconcat([img[18], img[19], img[20], img[21], img[22], img[23]]),
+                cv2.vconcat([img[24], img[25], img[26], img[27], img[28], img[29]]),
+                cv2.vconcat([img[30], img[31], img[32], img[33], img[34], img[35]]),
             ])
 
         if self.transform is not None:

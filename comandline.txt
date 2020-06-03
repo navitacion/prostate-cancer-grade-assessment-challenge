@@ -93,11 +93,40 @@ LB: 0.76
 
 # EFN-b0  ####################################################
 # jpgから読み込んだ画像（tiff_level_1）をベースに学習
+学習画像はimg_num * 1.5から学習の度にランダムで選択するようにする
+→うまく学習されないっぽい
 python train_fromjpg.py -exp efn_b0_fromjpg_01 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -epoch 100 -img_n 16 -sch none
 
 
+学習と推論どちらもimg_num分の画像をピックアップするようにする（学習時にランダムで選ばない）
+batch_multiplier=1
+python train_fromjpg.py -exp efn_b0_fromjpg_02 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -epoch 100 -img_n 16 -sch none
 
 
+background_rate=0.2にした画像で同じように学習
+batch_multiplier=1
+python train_fromjpg.py -exp efn_b0_fromjpg_03 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -epoch 100 -img_n 16 -sch none
+LB=0.70
+
+
+background_rate=0.7の画像でimage_size, tile_numを増やしてみる
+batch_multiplier=5
+python train_fromjpg.py -exp efn_b0_fromjpg_04 -model b0 -trn_s 0.8 -bs 4 -lr 0.001 -ims 512 -epoch 100 -img_n 36 -sch none
+
+
+
+background_rate=0.2にした画像で同じように学習
+schedularを設定
+batch_multiplier=1
+python train_fromjpg.py -exp efn_b0_fromjpg_05 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -epoch 100 -img_n 16 -sch step
+
+# tile_numを増加
+# Background_rate=0.7
+# (6, 6)の画像
+python train_fromjpg.py -exp efn_b0_fromjpg_06 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -epoch 100 -img_n 36 -sch step
+
+
+python train_fromjpg.py -exp efn_b0_fromjpg_07 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -epoch 100 -img_n 12 -sch step
 
 
 
