@@ -139,7 +139,7 @@ class Trainer:
             if self.scheduler is not None:
                 self.scheduler.step()
 
-            if phase == 'val' and epoch_loss < best_loss:
+            if phase == 'val' and (epoch_loss < best_loss or epoch_score > best_score):
                 best_loss = epoch_loss
                 best_score = epoch_score
                 filename = f'{self.exp}_epoch_{epoch+1}_loss_{best_loss:.3f}_kappa_{best_score:.3f}.pth'

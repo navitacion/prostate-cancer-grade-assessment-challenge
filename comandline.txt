@@ -123,10 +123,28 @@ python train_fromjpg.py -exp efn_b0_fromjpg_05 -model b0 -trn_s 0.8 -bs 16 -lr 0
 # tile_numを増加
 # Background_rate=0.7
 # (6, 6)の画像
-python train_fromjpg.py -exp efn_b0_fromjpg_06 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -epoch 100 -img_n 36 -sch step
+python train_fromjpg.py -exp efn_b0_fromjpg_06 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -epoch 200 -img_n 36 -sch step
 
 
 python train_fromjpg.py -exp efn_b0_fromjpg_07 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -epoch 100 -img_n 12 -sch step
+
+
+
+# fromjpg_06と同じ条件
+# stratifiedKFoldを適用
+# Background_rate=0.7
+# ImageTransform(Flip, transposeのみ)
+python train_fromjpg.py -exp efn_b0_fromjpg_08 -model b0 -trn_s 0.8 -bs 16 -lr 0.001 -ims 224 -epoch 100 -img_n 36 -sch step
+
+
+# stratifiedKFoldを適用
+# Background_rate=0.7
+# ImageTransform(Flip, transposeのみ)
+python train_fromjpg.py -exp efn_b0_fromjpg_09 -model b0 -trn_s 0.8 -bs 8 -lr 0.0001 -ims 600 -epoch 100 -img_n 36 -sch cos_2
+
+
+
+
 
 
 

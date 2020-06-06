@@ -294,7 +294,7 @@ class PANDADataset_4(Dataset):
 
         if len(img) < self.img_num:
             while True:
-                img.append(np.zeros((self.img_size, self.img_size, 3)))
+                img.append(np.zeros((224, 224, 3)))
                 if len(img) == self.img_num:
                     break
 

@@ -10,7 +10,7 @@ class ImageTransform:
                 albu.Resize(img_size, img_size),
                 albu.HorizontalFlip(),
                 albu.VerticalFlip(),
-                albu.RandomRotate90(),
+                albu.Transpose(),
                 albu.Normalize(mean, std),
                 ToTensorV2(),
             ]),
