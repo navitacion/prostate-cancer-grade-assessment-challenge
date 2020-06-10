@@ -143,8 +143,25 @@ python train_fromjpg.py -exp efn_b0_fromjpg_08 -model b0 -trn_s 0.8 -bs 16 -lr 0
 python train_fromjpg.py -exp efn_b0_fromjpg_09 -model b0 -trn_s 0.8 -bs 8 -lr 0.0001 -ims 600 -epoch 100 -img_n 36 -sch cos_2
 
 
+# efn_b0_fromjpg_09_epoch_5_loss_0.825_kappa_0.783.pthを最初の重みとして学習
+# foldを変える
+python train_fromjpg.py -exp efn_b0_fromjpg_09_01 -model b0 -trn_s 0.8 -bs 8 -lr 0.0001 -ims 600 -epoch 100 -img_n 36 -sch cos_2
+LB: 0.83
+
+python train_fromjpg.py -exp efn_b0_fromjpg_09_02 -model b0 -trn_s 0.8 -bs 8 -lr 0.0001 -ims 600 -epoch 100 -img_n 36 -sch cos_2
+LB: 0.83
 
 
+
+
+# img_sizeを大きくする
+# 全データ
+python train_fromjpg.py -exp efn_b0_fromjpg_10 -model b0 -trn_s 0.8 -bs 8 -lr 0.0003 -ims 650 -epoch 100 -img_n 36 -sch cos_2
+
+
+
+# Modify_trainを使用
+python train_fromjpg.py -exp efn_b0_fromjpg_modify_01 -model b0 -trn_s 0.8 -bs 8 -lr 0.0005 -ims 600 -epoch 100 -img_n 36 -sch cos_2
 
 
 

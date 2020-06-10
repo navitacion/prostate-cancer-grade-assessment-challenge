@@ -128,6 +128,11 @@ class Trainer:
                         self.writer.add_scalar(f'{phase}/batch_kappa', score, val_i)
                         val_i += 1
 
+                    # Memory Clear
+                    del img, label, loss, pred
+                    gc.collect()
+                    torch.cuda.empty_cache()
+
                 # epochごとの平均誤差を算出
                 epoch_loss = epoch_loss / len(self.dataloaders[phase].dataset)
                 self.writer.add_scalar(f'{phase}/epoch_loss', epoch_loss, epoch + 1)
@@ -254,7 +259,8 @@ class Trainer_2:
                         val_i += 1
 
                     # Memory Clear
-                    del img, label
+                    del img, label, loss
+                    gc.collect()
                     torch.cuda.empty_cache()
 
                 # epochごとの平均誤差を算出

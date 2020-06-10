@@ -29,6 +29,7 @@ parser.add_argument('-lr', '--lr', type=float, default=0.0005)
 parser.add_argument('-ims', '--image_size', type=int, default=224)
 parser.add_argument('-img_n', '--img_num', type=int, default=12)
 parser.add_argument('-epoch', '--num_epoch', type=int, default=100)
+parser.add_argument('-fold', '--fold', type=int, default=0, choices=[0, 1, 2, 3, 4])
 parser.add_argument('-sch', '--scheduler', choices=['step', 'cos', 'none', 'cos_2'], default='step')
 
 arges = parser.parse_args()
@@ -54,7 +55,12 @@ model_name = f'efficientnet-{arges.model_name}'
 img_path = glob.glob('../data/grid_224_2/*.jpg')
 # Background_rate = 0.2
 # img_path = glob.glob('../data/grid_224_level_1/img/*.jpg')
-meta = pd.read_csv('../data/input/train.csv')
+
+# Labelデータの読み込み
+# meta = pd.read_csv('../data/input/train.csv')
+meta = pd.read_csv('../data/input/modified_train.csv')
+
+# Data Augmentation
 transform = ImageTransform(config['img_size'])
 
 # idごとの画像数を抽出しimg_numより少ないimgは対象外にする
@@ -63,21 +69,15 @@ u, count = np.unique(img_id, return_counts=True)
 img_id = u[count > int(config['img_num'] * 0.5)]
 meta = meta[meta['image_id'].isin(img_id)].reset_index(drop=True)
 
-# Train Validation Split
-# Random
-# meta = meta.sample(frac=1.0).reset_index(drop=True)
-# train = meta.iloc[:int(len(meta) * train_size)]
-# val = meta.iloc[int(len(meta) * train_size):]
-# del meta
-
 # StratifiedKFold
 cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
 meta['fold'] = -1
 for i, (trn_idx, val_idx) in enumerate(cv.split(meta, meta['isup_grade'])):
     meta.loc[val_idx, 'fold'] = i
 
-train_idx = np.where((meta['fold'] != 0))[0]
-valid_idx = np.where((meta['fold'] == 0))[0]
+fold = arges.fold
+train_idx = np.where((meta['fold'] != fold))[0]
+valid_idx = np.where((meta['fold'] == fold))[0]
 train = meta.iloc[train_idx]
 val = meta.iloc[valid_idx]
 del meta
@@ -103,8 +103,9 @@ print('Val: ', len(dataloaders['val']))
 # Model  ################################################################
 net = ModelEFN(model_name=model_name, output_size=6)
 
-model_path = '../weights/efn_b0_fromjpg_09_epoch_1_loss_0.852_kappa_0.778.pth'
-net.load_state_dict(torch.load(model_path, map_location=device))
+# Set Weight
+# model_path = '../weights/efn_b0_fromjpg_10_epoch_10_loss_0.938_kappa_0.734.pth'
+# net.load_state_dict(torch.load(model_path, map_location=device))
 
 optimizer = optim.Adam(net.parameters(), lr=lr)
 criterion = nn.CrossEntropyLoss(reduction='mean')
