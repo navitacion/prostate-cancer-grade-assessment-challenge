@@ -58,7 +58,9 @@ img_path = glob.glob('../data/grid_224_2/*.jpg')
 
 # Labelデータの読み込み
 # meta = pd.read_csv('../data/input/train.csv')
-meta = pd.read_csv('../data/input/modified_train.csv')
+# meta = pd.read_csv('../data/input/modified_train.csv')   # 修正ver1
+meta = pd.read_csv('../data/input/modified_train_v2.csv')  # 修正ver2  (score_3, 4, 5の割合を考慮)
+
 
 # Data Augmentation
 transform = ImageTransform(config['img_size'])
@@ -104,8 +106,8 @@ print('Val: ', len(dataloaders['val']))
 net = ModelEFN(model_name=model_name, output_size=6)
 
 # Set Weight
-model_path = '../weights/efn_b0_fromjpg_modify_01_epoch_12_loss_0.866_kappa_0.776.pth'
-net.load_state_dict(torch.load(model_path, map_location=device))
+# model_path = '../weights/efn_b0_fromjpg_modify_01_epoch_12_loss_0.866_kappa_0.776.pth'
+# net.load_state_dict(torch.load(model_path, map_location=device))
 
 optimizer = optim.Adam(net.parameters(), lr=lr)
 criterion = nn.CrossEntropyLoss(reduction='mean')

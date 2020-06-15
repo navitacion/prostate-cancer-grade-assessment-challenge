@@ -160,14 +160,23 @@ python train_fromjpg.py -exp efn_b0_fromjpg_10 -model b0 -trn_s 0.8 -bs 8 -lr 0.
 
 
 
-# Modify_trainを使用
-python train_fromjpg.py -exp efn_b0_fromjpg_modify_01 -model b0 -trn_s 0.8 -bs 8 -lr 0.0001 -ims 600 -epoch 100 -img_n 36 -sch cos_2
+# Modify_trainを使用  ###########################################################
 
+# modify_ver1を使用
+python train_fromjpg.py -exp efn_b0_fromjpg_modify_01 -model b0 -trn_s 0.8 -bs 8 -lr 0.0001 -ims 600 -epoch 100 -img_n 36 -sch cos_2
 
 
 # efn_b0_fromjpg_modify_01_epoch_12_loss_0.866_kappa_0.776.pthを最初の重みとして学習
 python train_fromjpg.py -exp efn_b0_fromjpg_modify_01_01 -model b0 -trn_s 0.8 -bs 8 -lr 0.0001 -ims 600 -epoch 50 -img_n 36 -sch cos_2 -fold 1
 LB 0.84
+
+
+# modify_ver2を使用
+python train_fromjpg.py -exp efn_b0_fromjpg_modify_02 -model b0 -trn_s 0.8 -bs 8 -lr 0.0001 -ims 600 -epoch 100 -img_n 36 -sch cos_2 -fold 0
+
+
+
+
 
 
 
