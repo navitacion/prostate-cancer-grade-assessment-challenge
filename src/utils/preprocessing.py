@@ -367,8 +367,9 @@ class PANDAImagePreprocessing_2:
         _dict['image_id'] = [self.id]  # グリッドのインデックスをファイル名に付与
         res = pd.DataFrame(_dict)
 
-        # 割合を計算（1グリッドごとの全ピクセルで除算）
-        for score in ['score_0', 'score_1', 'score_2', 'score_3', 'score_4', 'score_5']:
-            res[score] = res[score] / (h * w)
+        # 割合を計算（背景を無視して生体の中の割合を計算する）
+        res['sum'] = res['score_1'] + res['score_2'] + res['score_3'] + res['score_4'] + res['score_5']
+        for score in ['score_1', 'score_2', 'score_3', 'score_4', 'score_5']:
+            res[score] = res[score] / res['sum']
 
         return res

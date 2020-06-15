@@ -26,6 +26,21 @@ class ModelEFN(nn.Module):
         return out2
 
 
+class ModelEFN_2(nn.Module):
+    def __init__(self, model_name='efficientnet-b0', output_size=5):
+        super(ModelEFN_2, self).__init__()
+        self.base = EfficientNet.from_pretrained(model_name=model_name)
+
+        self.last = nn.Linear(self.base._fc.in_features, output_size)
+        self.base._fc = nn.Identity()
+
+    def forward(self, x):
+        out = self.base(x)
+        out = self.last(out)
+
+        return out
+
+
 class Model_V2(nn.Module):
     def __init__(self, output_size=6):
         super(Model_V2, self).__init__()

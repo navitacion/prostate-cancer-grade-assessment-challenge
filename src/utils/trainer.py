@@ -24,7 +24,7 @@ class Trainer:
     PANDA Competitionの学習用クラス
     """
     def __init__(self, dataloaders, net, device, num_epochs, criterion, optimizer, scheduler=None,
-                 batch_multiplier=1, exp='exp_name', save_weight_path='../weights'):
+                 batch_multiplier=1, exp='exp_name', save_weight_path='../weights', label_mode='normal'):
         """
         :param dataloaders: dict
             データローダを辞書型に格納したもの
@@ -48,6 +48,8 @@ class Trainer:
             学習テスト名
         :param save_weight_path: str
             モデルの重みの保存先パス
+        !:param label_mode: str
+            通常のラベルとビニングラベルを設定
         """
         self.dataloaders = dataloaders
         self.net = net
@@ -62,6 +64,7 @@ class Trainer:
 
         self.net = self.net.to(self.device)
         self.save_weight_path = save_weight_path
+        self.label_mode = label_mode
 
     def train(self):
         """
@@ -113,7 +116,12 @@ class Trainer:
                     epoch_loss += loss.item() * img.size(0) * self.batch_multiplier
 
                     # Cohen Kappa
-                    _, pred = torch.max(pred, 1)
+                    if self.label_mode == 'normal':
+                        _, pred = torch.max(pred, 1)
+                    elif self.label_mode == 'binning':
+                        # binning -> scalar
+                        pred = pred.sum(1).round().int()
+                        label = label.sum(1).round().int()
                     score = cohen_kappa_score(label.detach().cpu().numpy(), pred.detach().cpu().numpy(),
                                               weights='quadratic')
                     epoch_score += score * img.size(0)

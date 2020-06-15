@@ -16,7 +16,7 @@ class ImageTransform:
             ]),
             'val': albu.Compose([
                 albu.Resize(img_size, img_size),
-                albu.Normalize(),
+                albu.Normalize(mean, std),
                 ToTensorV2(),
             ])}
 

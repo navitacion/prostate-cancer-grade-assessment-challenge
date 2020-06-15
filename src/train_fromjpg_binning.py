@@ -11,8 +11,8 @@ from torch import nn, optim
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import StepLR, CosineAnnealingWarmRestarts, CosineAnnealingLR
 
-from utils import seed_everything, ImageTransform, ImageTransform_2, PANDADataset_4, Trainer
-from model import ModelEFN
+from utils import seed_everything, ImageTransform, ImageTransform_2, PANDADataset_5, Trainer
+from model import ModelEFN_2
 
 if os.name == 'nt':
     sep = '\\'
@@ -57,8 +57,8 @@ img_path = glob.glob('../data/grid_224_2/*.jpg')
 # img_path = glob.glob('../data/grid_224_level_1/img/*.jpg')
 
 # Labelデータの読み込み
-# meta = pd.read_csv('../data/input/train.csv')
-meta = pd.read_csv('../data/input/modified_train.csv')
+meta = pd.read_csv('../data/input/train.csv')
+# meta = pd.read_csv('../data/input/modified_train.csv')
 
 # Data Augmentation
 transform = ImageTransform(config['img_size'])
@@ -84,8 +84,8 @@ del meta
 
 
 # Dataset, DataLoader  ################################################################
-train_dataset = PANDADataset_4(img_path, train, 'train', transform, **config)
-val_dataset = PANDADataset_4(img_path, val, 'val', transform, **config)
+train_dataset = PANDADataset_5(img_path, train, 'train', transform, **config)
+val_dataset = PANDADataset_5(img_path, val, 'val', transform, **config)
 
 dataloaders = {
     'train': DataLoader(train_dataset, batch_size=batch_size, shuffle=True),
@@ -101,14 +101,14 @@ print('Train: ', len(dataloaders['train']))
 print('Val: ', len(dataloaders['val']))
 
 # Model  ################################################################
-net = ModelEFN(model_name=model_name, output_size=6)
+net = ModelEFN_2(model_name=model_name, output_size=5)
 
 # Set Weight
-model_path = '../weights/efn_b0_fromjpg_modify_01_epoch_12_loss_0.866_kappa_0.776.pth'
-net.load_state_dict(torch.load(model_path, map_location=device))
+# model_path = '../weights/efn_b0_fromjpg_modify_01_epoch_12_loss_0.866_kappa_0.776.pth'
+# net.load_state_dict(torch.load(model_path, map_location=device))
 
 optimizer = optim.Adam(net.parameters(), lr=lr)
-criterion = nn.CrossEntropyLoss(reduction='mean')
+criterion = nn.BCEWithLogitsLoss()
 sch_dict = {
     'step': StepLR(optimizer, step_size=10, gamma=0.5),
     'cos': CosineAnnealingWarmRestarts(optimizer, T_0=5, T_mult=2, eta_min=lr * 0.1),
@@ -119,5 +119,5 @@ scheduler = sch_dict[arges.scheduler]
 
 # Train  ################################################################
 trainer = Trainer(dataloaders, net, device, num_epochs, criterion, optimizer, scheduler,
-                  batch_multiplier=1, exp=exp_name)
+                  batch_multiplier=1, exp=exp_name, label_mode='binning')
 trainer.train()

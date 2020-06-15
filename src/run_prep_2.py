@@ -57,7 +57,6 @@ with redirect_stdout(open(os.devnull, 'w')):
             continue
 
         img_id_list.extend(res['image_id'].values.tolist())
-        score_0.extend(res['score_0'].values.tolist())
         score_1.extend(res['score_1'].values.tolist())
         score_2.extend(res['score_2'].values.tolist())
         score_3.extend(res['score_3'].values.tolist())
@@ -66,7 +65,6 @@ with redirect_stdout(open(os.devnull, 'w')):
 
 all_res = pd.DataFrame({
     'image_id': img_id_list,
-    'score_0': score_0,
     'score_1': score_1,
     'score_2': score_2,
     'score_3': score_3,
@@ -74,4 +72,4 @@ all_res = pd.DataFrame({
     'score_5': score_5
 })
 
-all_res.to_csv(os.path.join(save_dir, 'res_score_from_level_0.csv'), index=False)
+all_res.to_csv(os.path.join(save_dir, 'res_score_from_level_0_ver2.csv'), index=False)
