@@ -27,6 +27,7 @@ class ImageTransform:
         return _img
 
 
+
 class ImageTransform_2:
     def __init__(self, img_size, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
         self.transform = {
@@ -34,16 +35,14 @@ class ImageTransform_2:
                 albu.Resize(img_size, img_size),
                 albu.HorizontalFlip(),
                 albu.VerticalFlip(),
-                albu.RandomRotate90(),
-                albu.ShiftScaleRotate(),
                 albu.Transpose(),
-                albu.GridDistortion(),
+                albu.CoarseDropout(max_holes=8, max_height=img_size // 8, max_width=img_size // 8, min_holes=4),
                 albu.Normalize(mean, std),
                 ToTensorV2(),
             ]),
             'val': albu.Compose([
                 albu.Resize(img_size, img_size),
-                albu.Normalize(),
+                albu.Normalize(mean, std),
                 ToTensorV2(),
             ])}
 

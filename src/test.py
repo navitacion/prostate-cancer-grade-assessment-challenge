@@ -31,31 +31,34 @@ from sklearn.metrics import cohen_kappa_score
 #     print(df[df['image_id'] == tar])
 #     print(df_2[df_2['image_id'] == tar])
 
+#
+# z = torch.randn(2, 3, 224, 224)
+#
+# model = ModelEFN_2('efficientnet-b0')
+# out = model(z)
+#
+# pred = out.sum(1).round().int()
+# print(pred)
+# print(pred.dtype)
+#
+# _, pred_2 = torch.max(out, 1)
+# print(pred_2)
+# print(pred_2.dtype)
+#
+#
+# a = torch.tensor([[0.9, 0.9, 0.9, 0.9, 0.9],
+#                  [0.4, 0.5, 0.2, 0.1, 0.0]])
+#
+# print(a.size())
+#
+# criterion = nn.BCEWithLogitsLoss()
+#
+# loss = criterion(out, a)
+# print(loss)
+#
+# PREDS = a.sum(1).round().int().detach().numpy()
+#
+# print(PREDS)
 
-z = torch.randn(2, 3, 224, 224)
 
-model = ModelEFN_2('efficientnet-b0')
-out = model(z)
-
-pred = out.sum(1).round().int()
-print(pred)
-print(pred.dtype)
-
-_, pred_2 = torch.max(out, 1)
-print(pred_2)
-print(pred_2.dtype)
-
-
-a = torch.tensor([[0.9, 0.9, 0.9, 0.9, 0.9],
-                 [0.4, 0.5, 0.2, 0.1, 0.0]])
-
-print(a.size())
-
-criterion = nn.BCEWithLogitsLoss()
-
-loss = criterion(out, a)
-print(loss)
-
-PREDS = a.sum(1).round().int().detach().numpy()
-
-print(PREDS)
+print(60 // 4)

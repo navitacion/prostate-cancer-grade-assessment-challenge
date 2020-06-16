@@ -63,7 +63,9 @@ meta = pd.read_csv('../data/input/modified_train_v2.csv')  # 修正ver2  (score_
 
 
 # Data Augmentation
-transform = ImageTransform(config['img_size'])
+# transform = ImageTransform(config['img_size'])
+transform = ImageTransform_2(config['img_size'])  # cutout
+
 
 # idごとの画像数を抽出しimg_numより少ないimgは対象外にする
 img_id = [s.split(sep)[-1].split('_')[0] for s in img_path]
