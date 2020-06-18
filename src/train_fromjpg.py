@@ -11,7 +11,7 @@ from torch import nn, optim
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import StepLR, CosineAnnealingWarmRestarts, CosineAnnealingLR
 
-from utils import seed_everything, ImageTransform, ImageTransform_2, PANDADataset_4, Trainer
+from utils import seed_everything, ImageTransform, ImageTransform_2, PANDADataset_4, Trainer, QWKLoss, Trainer_multifold
 from model import ModelEFN
 
 if os.name == 'nt':
@@ -79,40 +79,66 @@ meta['fold'] = -1
 for i, (trn_idx, val_idx) in enumerate(cv.split(meta, meta['isup_grade'])):
     meta.loc[val_idx, 'fold'] = i
 
-fold = arges.fold
-train_idx = np.where((meta['fold'] != fold))[0]
-valid_idx = np.where((meta['fold'] == fold))[0]
-train = meta.iloc[train_idx]
-val = meta.iloc[valid_idx]
-del meta
-
 
 # Dataset, DataLoader  ################################################################
-train_dataset = PANDADataset_4(img_path, train, 'train', transform, **config)
-val_dataset = PANDADataset_4(img_path, val, 'val', transform, **config)
+# すべてのfold分のdataloaderを作成
+dataloaders = {}
+for f in range(5):
+    train_idx = np.where((meta['fold'] != f))[0]
+    valid_idx = np.where((meta['fold'] == f))[0]
+    train = meta.iloc[train_idx]
+    val = meta.iloc[valid_idx]
 
-dataloaders = {
-    'train': DataLoader(train_dataset, batch_size=batch_size, shuffle=True),
-    'val': DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
-}
+    train_dataset = PANDADataset_4(img_path, train, 'train', transform, **config)
+    val_dataset = PANDADataset_4(img_path, val, 'val', transform, **config)
+
+    dataloaders[f'train_{f}'] = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    dataloaders[f'val_{f}'] = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
 print('Data Num')
-print('Train: ', len(dataloaders['train'].dataset))
-print('Val: ', len(dataloaders['val'].dataset))
+print('Train: ', len(dataloaders['train_0'].dataset))
+print('Val: ', len(dataloaders['val_0'].dataset))
 print('#'*30)
 print('Iterarion')
-print('Train: ', len(dataloaders['train']))
-print('Val: ', len(dataloaders['val']))
+print('Train: ', len(dataloaders['train_0']))
+print('Val: ', len(dataloaders['val_0']))
+
+
+# 単一のfoldのみで学習
+# fold = arges.fold
+# train_idx = np.where((meta['fold'] != fold))[0]
+# valid_idx = np.where((meta['fold'] == fold))[0]
+# train = meta.iloc[train_idx]
+# val = meta.iloc[valid_idx]
+# del meta
+#
+# train_dataset = PANDADataset_4(img_path, train, 'train', transform, **config)
+# val_dataset = PANDADataset_4(img_path, val, 'val', transform, **config)
+#
+# dataloaders = {
+#     'train': DataLoader(train_dataset, batch_size=batch_size, shuffle=True),
+#     'val': DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+# }
+#
+# print('Data Num')
+# print('Train: ', len(dataloaders['train'].dataset))
+# print('Val: ', len(dataloaders['val'].dataset))
+# print('#'*30)
+# print('Iterarion')
+# print('Train: ', len(dataloaders['train']))
+# print('Val: ', len(dataloaders['val']))
 
 # Model  ################################################################
 net = ModelEFN(model_name=model_name, output_size=6)
 
 # Set Weight
-# model_path = '../weights/efn_b0_fromjpg_modify_01_epoch_12_loss_0.866_kappa_0.776.pth'
+# model_path = '../weights/efn_b0_fromjpg_modify_03_01_epoch_3_loss_0.763_kappa_0.803.pth'
 # net.load_state_dict(torch.load(model_path, map_location=device))
 
 optimizer = optim.Adam(net.parameters(), lr=lr)
 criterion = nn.CrossEntropyLoss(reduction='mean')
+# criterion = QWKLoss()
+
 sch_dict = {
     'step': StepLR(optimizer, step_size=10, gamma=0.5),
     'cos': CosineAnnealingWarmRestarts(optimizer, T_0=5, T_mult=2, eta_min=lr * 0.1),
@@ -122,6 +148,6 @@ sch_dict = {
 scheduler = sch_dict[arges.scheduler]
 
 # Train  ################################################################
-trainer = Trainer(dataloaders, net, device, num_epochs, criterion, optimizer, scheduler,
-                  batch_multiplier=1, exp=exp_name)
+trainer = Trainer_multifold(dataloaders, net, device, num_epochs, criterion, optimizer, scheduler,
+                            batch_multiplier=1, exp=exp_name)
 trainer.train()

@@ -172,21 +172,25 @@ LB 0.84
 
 
 # modify_ver2を使用
+# まだ学習途中！
 python train_fromjpg.py -exp efn_b0_fromjpg_modify_02 -model b0 -trn_s 0.8 -bs 8 -lr 0.0001 -ims 600 -epoch 100 -img_n 36 -sch cos_2 -fold 0
 
 
+# modify_ver2を使用
+# Cutoutを導入
+# まだ学習途中！
+python train_fromjpg.py -exp efn_b0_fromjpg_modify_03 -model b0 -trn_s 0.8 -bs 8 -lr 0.0001 -ims 600 -epoch 100 -img_n 36 -sch cos_2 -fold 0
+
+
+# efn_b0_fromjpg_modify_03_epoch_6_loss_0.880_kappa_0.776.pthを用いて再学習
+python train_fromjpg.py -exp efn_b0_fromjpg_modify_03_01 -model b0 -trn_s 0.8 -bs 8 -lr 0.0001 -ims 600 -epoch 100 -img_n 36 -sch cos_2 -fold 1
+
+python train_fromjpg.py -exp efn_b0_fromjpg_modify_03_02 -model b0 -trn_s 0.8 -bs 8 -lr 0.00005 -ims 600 -epoch 100 -img_n 36 -sch cos_2 -fold 2
 
 
 
+# foldをランダムに選択してすべてのfoldで学習できるようにする
+python train_fromjpg.py -exp efn_b0_fromjpg_multifold_01 -model b0 -trn_s 0.8 -bs 8 -lr 0.0001 -ims 600 -epoch 100 -img_n 36 -sch cos_2 -fold 0
 
-
-# Binningを使用したVer
-# 通常ラベルを使用
-python train_fromjpg_binning.py -exp efn_b0_fromjpg_bin_01 -model b0 -trn_s 0.8 -bs 8 -lr 0.0003 -ims 600 -epoch 100 -img_n 36 -sch cos_2 -fold 0
-
-
-# V2
-ラベルを予測するモデル
-python train_maskscore.py -exp mask_b0_01 -model b0 -trn_s 0.8 -bs 128 -lr 0.001 -ims 224 -epoch 100
 
 
