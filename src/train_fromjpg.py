@@ -11,7 +11,7 @@ from torch import nn, optim
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import StepLR, CosineAnnealingWarmRestarts, CosineAnnealingLR
 
-from utils import seed_everything, ImageTransform, ImageTransform_2, PANDADataset_4, Trainer, QWKLoss, Trainer_multifold
+from utils import seed_everything, ImageTransform, ImageTransform_2, PANDADataset, Trainer, QWKLoss, Trainer_multifold
 from model import ModelEFN
 
 if os.name == 'nt':
@@ -63,8 +63,8 @@ meta = pd.read_csv('../data/input/modified_train_v2.csv')  # 修正ver2  (score_
 
 
 # Data Augmentation
-# transform = ImageTransform(config['img_size'])
-transform = ImageTransform_2(config['img_size'])  # cutout
+transform = ImageTransform(config['img_size'])
+# transform = ImageTransform_2(config['img_size'])  # cutout
 
 
 # idごとの画像数を抽出しimg_numより少ないimgは対象外にする
@@ -89,8 +89,8 @@ for f in range(5):
     train = meta.iloc[train_idx]
     val = meta.iloc[valid_idx]
 
-    train_dataset = PANDADataset_4(img_path, train, 'train', transform, **config)
-    val_dataset = PANDADataset_4(img_path, val, 'val', transform, **config)
+    train_dataset = PANDADataset(img_path, train, 'train', transform, **config)
+    val_dataset = PANDADataset(img_path, val, 'val', transform, **config)
 
     dataloaders[f'train_{f}'] = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     dataloaders[f'val_{f}'] = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)

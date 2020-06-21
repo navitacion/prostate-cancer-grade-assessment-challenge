@@ -192,7 +192,30 @@ python train_fromjpg.py -exp efn_b0_fromjpg_modify_03_02 -model b0 -trn_s 0.8 -b
 # foldをランダムに選択してすべてのfoldで学習できるようにする
 # label ver2
 # cutout込
-python train_fromjpg.py -exp efn_b0_fromjpg_multifold_01 -model b0 -trn_s 0.8 -bs 8 -lr 0.0001 -ims 600 -epoch 100 -img_n 36 -sch cos_2 -fold 0
+python train_fromjpg.py -exp efn_b0_fromjpg_multifold_01 -model b0 -trn_s 0.8 -bs 8 -lr 0.0001 -ims 600 -epoch 100 -img_n 36 -sch cos_2
+LB: 0.80
 
+
+# foldをランダムに選択してすべてのfoldで学習できるようにする
+# labelは元のものを使用
+# cutout込
+python train_fromjpg.py -exp efn_b0_fromjpg_multifold_02 -model b0 -trn_s 0.8 -bs 8 -lr 0.0001 -ims 600 -epoch 100 -img_n 36 -sch cos_2
+LB: 0.79  Cutoutがだめなのかも。。
+
+
+# foldをランダムに選択してすべてのfoldで学習できるようにする
+# labelは修正版ver2
+# cutoutは用いない
+python train_fromjpg.py -exp efn_b0_fromjpg_multifold_03 -model b0 -trn_s 0.8 -bs 8 -lr 0.0003 -ims 600 -epoch 100 -img_n 36 -sch cos_2
+LB: 0.82
+Cutoutはないほうがよさそう
+
+
+# タイルごとにaugmentを行うようにする(train_fromjpg_2.py)
+# 学習する画像サイズはims * np.sqrt(img_n) = 224 * 4 = 896
+# foldは固定
+# labelは修正版ver.2
+# cutoutは使わない
+python train_fromjpg_2.py -exp efn_b0_fromjpg_augtile_01 -model b0 -trn_s 0.8 -bs 4 -lr 0.0003 -ims 224 -epoch 100 -img_n 16 -sch cos_2 -fold 0
 
 
