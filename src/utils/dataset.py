@@ -105,7 +105,7 @@ class PANDADataset(Dataset):
 
         if len(img) < self.img_num:
             while True:
-                img.append(np.zeros((224, 224, 3)))
+                img.append(np.zeros((self.img_size, self.img_size, 3)))
                 if len(img) == self.img_num:
                     break
 
@@ -132,6 +132,16 @@ class PANDADataset(Dataset):
                 cv2.vconcat([img[0], img[1], img[2], img[3]]),
                 cv2.vconcat([img[4], img[5], img[6], img[7]]),
                 cv2.vconcat([img[8], img[9], img[10], img[11]])
+            ])
+
+        elif self.img_num == 25:
+            # (5, 5)
+            img = cv2.hconcat([
+                cv2.vconcat([img[0], img[1], img[2], img[3], img[4]]),
+                cv2.vconcat([img[5], img[6], img[7], img[8], img[9]]),
+                cv2.vconcat([img[10], img[11], img[12], img[13], img[14]]),
+                cv2.vconcat([img[15], img[16], img[17], img[18], img[19]]),
+                cv2.vconcat([img[20], img[21], img[22], img[23], img[24]])
             ])
 
         elif self.img_num == 36:
@@ -189,7 +199,7 @@ class PANDADataset_2(Dataset):
 
         if len(img) < self.img_num:
             while True:
-                img.append(np.zeros((224, 224, 3)))
+                img.append(np.zeros((self.img_size, self.img_size, 3)))
                 if len(img) == self.img_num:
                     break
 
@@ -209,3 +219,56 @@ class PANDADataset_2(Dataset):
         label = target_row['isup_grade']
 
         return img_augmented, label
+
+
+def get_dataloaders(meta, fold, img_path, transform, img_num, img_size, batch_size, multi=False):
+
+    if not multi:
+        train_idx = np.where((meta['fold'] != fold))[0]
+        valid_idx = np.where((meta['fold'] == fold))[0]
+        train = meta.iloc[train_idx]
+        val = meta.iloc[valid_idx]
+        del meta
+
+        train_dataset = PANDADataset(img_path, train, 'train', transform, img_num, img_size)
+        val_dataset = PANDADataset(img_path, val, 'val', transform, img_num, img_size)
+
+        dataloaders = {
+            'train': DataLoader(train_dataset, batch_size=batch_size, shuffle=True),
+            'val': DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+        }
+
+        print('Data Num')
+        print('Train: ', len(dataloaders['train'].dataset))
+        print('Val: ', len(dataloaders['val'].dataset))
+        print('#' * 30)
+        print('Iterarion')
+        print('Train: ', len(dataloaders['train']))
+        print('Val: ', len(dataloaders['val']))
+
+        return dataloaders
+
+    else:
+        # すべてのfold分のdataloaderを作成
+        dataloaders = {}
+        for f in range(5):
+            train_idx = np.where((meta['fold'] != f))[0]
+            valid_idx = np.where((meta['fold'] == f))[0]
+            train = meta.iloc[train_idx]
+            val = meta.iloc[valid_idx]
+
+            train_dataset = PANDADataset(img_path, train, 'train', transform, img_num, img_size)
+            val_dataset = PANDADataset(img_path, val, 'val', transform, img_num, img_size)
+
+            dataloaders[f'train_{f}'] = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+            dataloaders[f'val_{f}'] = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+
+        print('Data Num')
+        print('Train: ', len(dataloaders['train_0'].dataset))
+        print('Val: ', len(dataloaders['val_0'].dataset))
+        print('#'*30)
+        print('Iterarion')
+        print('Train: ', len(dataloaders['train_0']))
+        print('Val: ', len(dataloaders['val_0']))
+
+        return dataloaders

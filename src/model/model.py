@@ -6,9 +6,13 @@ from efficientnet_pytorch import EfficientNet
 
 
 class ModelEFN(nn.Module):
-    def __init__(self, model_name='efficientnet-b0', output_size=6):
+    def __init__(self, model_name='efficientnet-b0', output_size=6, pretrained=True):
         super(ModelEFN, self).__init__()
-        self.base = EfficientNet.from_pretrained(model_name=model_name, num_classes=512)
+        if pretrained:
+            self.base = EfficientNet.from_pretrained(model_name=model_name, num_classes=512)
+        else:
+            self.base = EfficientNet.from_name(model_name=model_name)
+            self.base._fc = nn.Linear(self.base._fc.in_features, 512)
 
         self.block = nn.Sequential(
             nn.Linear(in_features=512, out_features=64),
@@ -27,9 +31,12 @@ class ModelEFN(nn.Module):
 
 
 class ModelEFN_2(nn.Module):
-    def __init__(self, model_name='efficientnet-b0', output_size=5):
+    def __init__(self, model_name='efficientnet-b0', output_size=6, pretrained=True):
         super(ModelEFN_2, self).__init__()
-        self.base = EfficientNet.from_pretrained(model_name=model_name)
+        if pretrained:
+            self.base = EfficientNet.from_pretrained(model_name=model_name)
+        else:
+            self.base = EfficientNet.from_name(model_name=model_name)
 
         self.last = nn.Linear(self.base._fc.in_features, output_size)
         self.base._fc = nn.Identity()

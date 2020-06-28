@@ -1,0 +1,17 @@
+hydra:
+  run:
+    dir: /hydra_output
+
+data:
+  exp: test_0
+  model_name: b0
+  image_size: 256
+  image_num: 25
+
+training:
+  batch_size: 2
+  lr: 0.0003
+  num_epoch: 30
+  fold: 0
+  scheduler: cos_2
+  multi_fold: False

@@ -14,7 +14,7 @@ else:
     sep = '/'
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-s', '--img_size', type=int, default=224)
+parser.add_argument('-s', '--img_size', type=int, default=256)
 args = parser.parse_args()
 
 # Config
@@ -22,16 +22,31 @@ SIZE = args.img_size
 data_dir = '../data/input'
 save_dir = f'../data/grid_{SIZE}_level_1/img'
 save_dir_mask = f'../data/grid_{SIZE}_level_1/mask'
-BACKGROUND = 0.2
+BACKGROUND = 0.7
+
+# すでに保存した画像IDを抽出
+image_id = glob.glob(os.path.join(save_dir, '*.jpg'))
+image_id = [path.split(sep)[-1].split('_')[0] for path in image_id]
+image_id = list(set(image_id))
 
 # データ読み込み
 train = pd.read_csv(os.path.join(data_dir, 'train.csv'))
+train = train[~train['image_id'].isin(image_id)].reset_index(drop=True)
+print(len(train))
 
 # 対象のデータを絞り込み
 # maskデータがあるimage_idを抽出
 masks = glob.glob(os.path.join(data_dir, 'train_label_masks', '*.tiff'))
 masks = [id.split(sep)[-1].split('_')[0] for id in masks]
 train = train[train['image_id'].isin(masks)].reset_index(drop=True)
+
+
+# Half
+train = train.iloc[:10516 // 2]
+
+# Reverse
+train = train.iloc[::-1]
+train = train.reset_index(drop=True)
 
 del masks
 gc.collect()
@@ -80,4 +95,4 @@ all_res = pd.DataFrame({
     'score_5': score_5
 })
 
-all_res.to_csv(os.path.join(save_dir, 'res.csv'), index=False)
+all_res.to_csv(os.path.join(save_dir, f'res_{SIZE}.csv'), index=False)

@@ -211,6 +211,15 @@ LB: 0.82
 Cutoutはないほうがよさそう
 
 
+
+# foldをランダムに選択してすべてのfoldで学習できるようにする
+# labelは修正版ver2
+# cutoutは用いない
+# lossをQWKlossでやってみる
+python train_fromjpg.py -exp efn_b0_fromjpg_multifold_04 -model b0 -trn_s 0.8 -bs 8 -lr 0.0003 -ims 600 -epoch 100 -img_n 36 -sch cos_2
+
+
+
 # タイルごとにaugmentを行うようにする(train_fromjpg_2.py)
 # 学習する画像サイズはims * np.sqrt(img_n) = 224 * 4 = 896
 # foldは固定
@@ -219,3 +228,37 @@ Cutoutはないほうがよさそう
 python train_fromjpg_2.py -exp efn_b0_fromjpg_augtile_01 -model b0 -trn_s 0.8 -bs 4 -lr 0.0003 -ims 224 -epoch 100 -img_n 16 -sch cos_2 -fold 0
 
 
+
+# タイルごとにaugmentを行うようにする(train_fromjpg_2.py)
+# 学習する画像サイズはims * np.sqrt(img_n) = 128 * 6 = 768
+# foldは固定
+# labelは修正版ver.2
+# cutoutは使わない
+python train_fromjpg_2.py -exp efn_b0_fromjpg_augtile_02 -model b0 -trn_s 0.8 -bs 6 -lr 0.0003 -ims 128 -epoch 100 -img_n 36 -sch cos_2 -fold 0
+# うまく学習できていない(lossが増加しちゃう)
+
+
+# 上と条件は同じで学習済み重みは使わないでやってみる
+python train_fromjpg_2.py -exp efn_b0_fromjpg_augtile_03 -model b0 -trn_s 0.8 -bs 6 -lr 0.0005 -ims 128 -epoch 100 -img_n 36 -sch cos_2 -fold 0
+# 時間がかかるし精度も上がらない。。128×128だとうまくいかないかも
+
+
+256でやってみる
+# model_2を使用
+# タイル結合後に前処理
+# fold0だけで学習
+python train_fromjpg.py -exp efn_b0_fromjpg_augtile_04 -model b0 -trn_s 0.8 -bs 8 -lr 0.0005 -ims 256 -epoch 100 -img_n 36 -sch cos_2 -fold 0
+
+
+
+
+# trainerを変えて同じように実施
+# Model_2を使用
+# normalizeではなく255で割る正規化をやってみる
+python train.py -exp efn_b0_256_fold_0 -model b0 -trn_s 0.8 -bs 2 -lr 0.0003 -ims 256 -epoch 30 -img_n 25 -sch cos_2 -fold 0
+
+
+
+
+
+python train_2.py data.exp=efn_b0_256_fold_0
