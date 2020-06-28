@@ -215,7 +215,7 @@ class PANDADataset_2(Dataset):
             img_augmented.append(self.transform(img[i], phase=self.phase))
 
         img_augmented = vutils.make_grid(img_augmented, normalize=False, padding=0, nrow=int(np.sqrt(self.img_num)))
-
+        img_augmented = img_augmented.to(torch.float32)
         label = target_row['isup_grade']
 
         return img_augmented, label

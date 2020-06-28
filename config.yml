@@ -1,6 +1,6 @@
 hydra:
   run:
-    dir: /hydra_output
+    dir: hydra_output/
 
 data:
   exp: test_0
