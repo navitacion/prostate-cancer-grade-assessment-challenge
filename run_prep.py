@@ -3,10 +3,9 @@ import gc
 import glob
 import argparse
 from tqdm import tqdm
-import numpy as np
 import pandas as pd
 from contextlib import redirect_stdout
-from utils.preprocessing import PANDAImagePreprocessing
+from src.utils.preprocessing import PANDAImagePreprocessing
 
 if os.name == 'nt':
     sep = '\\'
@@ -19,9 +18,9 @@ args = parser.parse_args()
 
 # Config
 SIZE = args.img_size
-data_dir = '../data/input'
-save_dir = f'../data/grid_{SIZE}_level_1/img'
-save_dir_mask = f'../data/grid_{SIZE}_level_1/mask'
+data_dir = './data/input'
+save_dir = f'./data/grid_{SIZE}_level_1/img'
+save_dir_mask = f'./data/grid_{SIZE}_level_1/mask'
 BACKGROUND = 0.7
 
 # すでに保存した画像IDを抽出
