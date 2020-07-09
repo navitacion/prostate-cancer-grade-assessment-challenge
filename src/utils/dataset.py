@@ -11,6 +11,8 @@ import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 import torchvision.utils as vutils
+import albumentations as albu
+from albumentations.pytorch import ToTensorV2
 
 
 if os.name == 'nt':
@@ -72,19 +74,39 @@ def pad_and_tile(img, img_size, img_num=12):
     return img_list
 
 
+class Inner_ImageTransform:
+    def __init__(self):
+        self.transform = {
+            'train': albu.Compose([
+                albu.HorizontalFlip(),
+                albu.VerticalFlip(),
+                albu.Transpose(),
+                ToTensorV2(),
+            ]),
+            'val': albu.Compose([
+                ToTensorV2(),
+            ])}
+
+    def __call__(self, img, phase='train'):
+        augmented = self.transform[phase](image=img)
+        _img = augmented['image']
+
+        return _img
+
+
 class PANDADataset(Dataset):
     """
     image_preprocessingでタイル状にした画像を読み込み、v,hconcatした画像を出力する
     image_idに応じて画像を抽出し、その画像からランダムに選ぶ
     """
 
-    def __init__(self, img_path, df, phase='train', transform=None, img_num=16, img_size=224):
+    def __init__(self, img_path, df, phase='train', transform=None, img_num=16, binning=False):
         self.img_path = img_path
         self.df = df
         self.transform = transform
         self.phase = phase
         self.img_num = img_num
-        self.img_size = img_size
+        self.binning = binning
 
     def __len__(self):
         return len(self.df)
@@ -105,7 +127,8 @@ class PANDADataset(Dataset):
 
         if len(img) < self.img_num:
             while True:
-                img.append(np.zeros((self.img_size, self.img_size, 3)))
+                org_img_size = 128
+                img.append(np.zeros((org_img_size, org_img_size, 3)))
                 if len(img) == self.img_num:
                     break
 
@@ -115,6 +138,13 @@ class PANDADataset(Dataset):
         flag = np.array([np.sum(im) for im in img])
         flag = np.argsort(flag)[::-1][:self.img_num]
         img = img[flag]
+
+        # 多めの画像をピックアップしておきランダムで反映されるようにする
+        # flag = np.array([np.sum(im) for im in img])
+        # flag = np.argsort(flag)[::-1][:int(self.img_num * 1.5)]
+        # random.seed()
+        # flag = random.shuffle(flag)[:self.img_num]
+        # img = img[flag]
 
         if self.img_num == 16:
             # 複数のタイルをつなぎ合わせて1枚の画像にする
@@ -160,8 +190,14 @@ class PANDADataset(Dataset):
         else:
             img = torch.tensor(img).permute(2, 0, 1)
         img = img.to(torch.float32)
+        img = img / 255.
 
         label = target_row['isup_grade']
+
+        # binning label
+        if self.binning:
+            label = np.zeros(5).astype(np.float32)
+            label[:target_row.isup_grade] = 1.
 
         return img, label
 
@@ -169,16 +205,17 @@ class PANDADataset(Dataset):
 class PANDADataset_2(Dataset):
     """
     PANDADatasetとほぼ同じ
-    タイルごとの画像ひとつひとつにaugmentをかけている
+    タイルごとの画像と結合後の画像にaugmentをかけている
     """
 
-    def __init__(self, img_path, df, phase='train', transform=None, img_num=36, img_size=224):
+    def __init__(self, img_path, df, phase='train', transform=None, img_num=36, binning=False):
         self.img_path = img_path
         self.df = df
         self.transform = transform
         self.phase = phase
         self.img_num = img_num
-        self.img_size = img_size
+        self.binning = binning
+        self.inner_transform = Inner_ImageTransform()
 
     def __len__(self):
         return len(self.df)
@@ -199,29 +236,48 @@ class PANDADataset_2(Dataset):
 
         if len(img) < self.img_num:
             while True:
-                img.append(np.zeros((self.img_size, self.img_size, 3)))
+                org_img_size = 128
+                img.append(np.zeros((org_img_size, org_img_size, 3)))
                 if len(img) == self.img_num:
                     break
 
         img = np.stack(img, axis=0)
 
         # 背景が少ない画像をピックアップするようにする
+        # flag = np.array([np.sum(im) for im in img])
+        # flag = np.argsort(flag)[::-1][:self.img_num]
+        # img = img[flag]
+
+        # 多めの画像をピックアップしておきランダムで反映されるようにする
         flag = np.array([np.sum(im) for im in img])
-        flag = np.argsort(flag)[::-1][:self.img_num]
+        flag = np.argsort(flag)[::-1][:int(self.img_num * 1.5)]
+        random.seed()
+        random.shuffle(flag)
+        random.seed(42)
+        flag = flag[:self.img_num]
         img = img[flag]
 
         img_augmented = []
         for i in range(img.shape[0]):
-            img_augmented.append(self.transform(img[i], phase=self.phase))
+            # タイルごとにAugmentation
+            img_augmented.append(self.inner_transform(img[i], phase=self.phase))
 
         img_augmented = vutils.make_grid(img_augmented, normalize=False, padding=0, nrow=int(np.sqrt(self.img_num)))
+        # 結合した後の画像にもAugmentation
+        img_augmented = self.transform(img_augmented.permute(1, 2, 0).detach().numpy(), phase=self.phase)
         img_augmented = img_augmented.to(torch.float32)
+        img_augmented = img_augmented / 255.
         label = target_row['isup_grade']
+
+        # binning label
+        if self.binning:
+            label = np.zeros(5).astype(np.float32)
+            label[:target_row.isup_grade] = 1.
 
         return img_augmented, label
 
 
-def get_dataloaders(meta, fold, img_path, transform, img_num, img_size, batch_size, multi=False):
+def get_dataloaders(meta, fold, img_path, transform, img_num, batch_size, multi=False, binning=False):
 
     if not multi:
         train_idx = np.where((meta['fold'] != fold))[0]
@@ -230,8 +286,8 @@ def get_dataloaders(meta, fold, img_path, transform, img_num, img_size, batch_si
         val = meta.iloc[valid_idx]
         del meta
 
-        train_dataset = PANDADataset(img_path, train, 'train', transform, img_num, img_size)
-        val_dataset = PANDADataset(img_path, val, 'val', transform, img_num, img_size)
+        train_dataset = PANDADataset_2(img_path, train, 'train', transform, img_num, binning)
+        val_dataset = PANDADataset_2(img_path, val, 'val', transform, img_num, binning)
 
         dataloaders = {
             'train': DataLoader(train_dataset, batch_size=batch_size, shuffle=True),
@@ -257,8 +313,8 @@ def get_dataloaders(meta, fold, img_path, transform, img_num, img_size, batch_si
             train = meta.iloc[train_idx]
             val = meta.iloc[valid_idx]
 
-            train_dataset = PANDADataset(img_path, train, 'train', transform, img_num, img_size)
-            val_dataset = PANDADataset(img_path, val, 'val', transform, img_num, img_size)
+            train_dataset = PANDADataset_2(img_path, train, 'train', transform, img_num, binning)
+            val_dataset = PANDADataset_2(img_path, val, 'val', transform, img_num, binning)
 
             dataloaders[f'train_{f}'] = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
             dataloaders[f'val_{f}'] = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)

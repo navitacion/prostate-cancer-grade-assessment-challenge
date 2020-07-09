@@ -261,4 +261,6 @@ python train.py -exp efn_b0_256_fold_0 -model b0 -trn_s 0.8 -bs 2 -lr 0.0003 -im
 
 
 
-python train_2.py data.exp=efn_b0_256_fold_0
+python train.py data.exp=efn_b0_256_fold_0
+
+python train.py data.exp=efn_b0_256_fold_1 training.fold=1

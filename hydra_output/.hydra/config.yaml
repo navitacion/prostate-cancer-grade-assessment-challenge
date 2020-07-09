@@ -1,0 +1,14 @@
+data:
+  exp: efn_b0_128_fold_0
+  image_num: 36
+  image_size: 768
+  model_name: b0
+training:
+  batch_size: 4
+  binning: true
+  fold: 0
+  lr: 0.0003
+  multi_fold: false
+  num_epoch: 30
+  optimizer: radam
+  scheduler: warmup

@@ -4,14 +4,8 @@ import time
 import cv2
 import random
 import datetime
-import numpy as np
-import pandas as pd
-from tqdm import tqdm
 from sklearn.metrics import cohen_kappa_score
 import torch
-from torch import nn
-import torch.nn.functional as F
-from tensorboardX import SummaryWriter
 import mlflow
 
 
@@ -26,7 +20,7 @@ class Trainer:
     PANDA Competitionの学習用クラス
     """
     def __init__(self, dataloaders, net, device, num_epochs, criterion, optimizer, scheduler=None,
-                 exp=None, writer=None, save_weight_path='../weights', label_mode='normal'):
+                 exp=None, writer=None, save_weight_path='../weights', binning=False):
         """
         :param dataloaders: dict
             データローダを辞書型に格納したもの
@@ -49,8 +43,8 @@ class Trainer:
             tensorboard
         :param save_weight_path: str
             モデルの重みの保存先パス
-        !:param label_mode: str
-            通常のラベルとビニングラベルを設定
+        !:param binning: str
+            ビニングラベルを設定
         """
         self.dataloaders = dataloaders
         self.net = net
@@ -64,7 +58,7 @@ class Trainer:
 
         self.net = self.net.to(self.device)
         self.save_weight_path = save_weight_path
-        self.label_mode = label_mode
+        self.binning = binning
 
     def train(self):
         """
@@ -81,6 +75,9 @@ class Trainer:
         for epoch in range(self.num_epochs):
             print('#'*30)
             t = time.time()
+
+            if self.scheduler is not None:
+                self.scheduler.step()
 
             for phase in ['train', 'val']:
 
@@ -109,12 +106,12 @@ class Trainer:
 
                     epoch_loss += loss.item() * img.size(0)
 
-                    if self.label_mode == 'normal':
-                        _, pred = torch.max(pred, 1)
-                    elif self.label_mode == 'binning':
+                    if self.binning:
                         # binning -> scalar
                         pred = pred.sigmoid().sum(1).round().int()
                         label = label.sum(1).round().int()
+                    else:
+                        _, pred = torch.max(pred, 1)
 
                     label_list.append(label)
                     pred_list.append(pred)
@@ -128,7 +125,7 @@ class Trainer:
                         val_i += 1
 
                     # Memory Clear
-                    del img, label
+                    del img, label, loss, pred
                     gc.collect()
                     torch.cuda.empty_cache()
 
@@ -149,15 +146,12 @@ class Trainer:
 
                 print(f'Epoch {epoch+1}  {phase}  Loss: {epoch_loss:.3f}')
 
-            if self.scheduler is not None:
-                self.scheduler.step()
-
-            if phase == 'val' and (epoch_loss < best_loss or epoch_score > best_score):
-                best_loss = epoch_loss
-                best_score = epoch_score
-                filename = f'{self.exp}_epoch_{epoch+1}_loss_{best_loss:.3f}_kappa_{best_score:.3f}.pth'
-                torch.save(self.net.state_dict(), os.path.join(self.save_weight_path, filename))
-                mlflow.log_artifact(os.path.join(self.save_weight_path, filename))
+                if phase == 'val' and (epoch_loss < best_loss or epoch_score > best_score):
+                    best_loss = epoch_loss
+                    best_score = epoch_score
+                    filename = f'{self.exp}_epoch_{epoch+1}_loss_{best_loss:.3f}_kappa_{best_score:.3f}.pth'
+                    torch.save(self.net.state_dict(), os.path.join(self.save_weight_path, filename))
+                    mlflow.log_artifact(os.path.join(self.save_weight_path, filename))
 
             elapsedtime = time.time() - t
             print(f'Elapsed Time: {str(datetime.timedelta(seconds=elapsedtime))}')
@@ -171,7 +165,7 @@ class Trainer_multifold:
     multifoldに対応させたもの
     """
     def __init__(self, dataloaders, net, device, num_epochs, criterion, optimizer, scheduler=None,
-                 exp='exp_name', writer=None, save_weight_path='../weights', label_mode='normal'):
+                 exp='exp_name', writer=None, save_weight_path='../weights', binning=False):
         """
         :param dataloaders: dict
             データローダを辞書型に格納したもの
@@ -192,8 +186,8 @@ class Trainer_multifold:
             学習テスト名
         :param save_weight_path: str
             モデルの重みの保存先パス
-        !:param label_mode: str
-            通常のラベルとビニングラベルを設定
+        !:param binning: str
+            ビニングラベルを設定
         """
         self.dataloaders = dataloaders
         self.net = net
@@ -207,7 +201,7 @@ class Trainer_multifold:
 
         self.net = self.net.to(self.device)
         self.save_weight_path = save_weight_path
-        self.label_mode = label_mode
+        self.binning = binning
 
     def train(self):
         """
@@ -257,16 +251,12 @@ class Trainer_multifold:
 
                     epoch_loss += loss.item() * img.size(0)
 
-                    # Cohen Kappa
-                    if self.label_mode == 'normal':
-                        _, pred = torch.max(pred, 1)
-                    elif self.label_mode == 'binning':
+                    if self.binning:
                         # binning -> scalar
                         pred = pred.sigmoid().sum(1).round().int()
                         label = label.sum(1).round().int()
-                    score = cohen_kappa_score(label.detach().cpu().numpy(), pred.detach().cpu().numpy(),
-                                              weights='quadratic')
-                    epoch_score += score * img.size(0)
+                    else:
+                        _, pred = torch.max(pred, 1)
 
                     label_list.append(label)
                     pred_list.append(pred)
@@ -274,15 +264,13 @@ class Trainer_multifold:
                     # Tensorboard
                     if phase == 'train':
                         self.writer.add_scalar(f'{phase}/batch_loss', loss, train_i)
-                        self.writer.add_scalar(f'{phase}/batch_kappa', score, train_i)
                         train_i += 1
                     elif phase == 'val':
                         self.writer.add_scalar(f'{phase}/batch_loss', loss, val_i)
-                        self.writer.add_scalar(f'{phase}/batch_kappa', score, val_i)
                         val_i += 1
 
                     # Memory Clear
-                    del img, label
+                    del img, label, loss, pred
                     gc.collect()
                     torch.cuda.empty_cache()
 

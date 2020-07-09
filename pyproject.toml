@@ -20,6 +20,7 @@ pillow = "^7.1.2"
 albumentations = "^0.4.5"
 mlflow = "^1.9.1"
 hydra-core = "^0.11.3"
+torch_optimizer = "^0.0.1-alpha.13"
 
 [tool.poetry.dev-dependencies]
 
